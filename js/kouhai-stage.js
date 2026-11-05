@@ -12,12 +12,9 @@
 import { KouhaiView, KOUHAI_GEOMETRY, pointToFreq } from './kouhai.js';
 import { EchoTrail, NoteSequence, findCanon, ALL_VOICES_BEAT } from './canon.js';
 import { freqToMidi } from './dsp.js';
-import { L } from './i18n.js';
 import { tuning, pcName, isAccidental } from './tuning.js';
 import { h } from './ui.js';
 
-/** 高さがはっきりしないときに、まん中に出す字（日本語は「観る」の「観」、英語は輪の「○」） */
-export const QUIET = L('観', '○');
 
 const BLOOM_MS = 9000; // 蓮が開いてから消えるまで（CSS の bloom-life と同じ長さ）
 const SECRET_REST_MS = 10000; // 歌で蓮が開いたあと、しばらくは聴き分けない（同じ歌で何度も開かないように）
@@ -228,9 +225,9 @@ export class KouhaiStage {
     );
   }
 
-  /** まん中（頭光）の音名。n は tuning.js の describe の答え。高さがはっきりしないときは「観」 */
+  /** まん中（頭光）の音名。n は tuning.js の describe の答え。高さがはっきりしないときは空にする（まん中には状態を出す） */
   setNote(n) {
-    this.el.note.textContent = n ? n.name : QUIET;
+    this.el.note.textContent = n ? n.name : '';
     this.el.note.dataset.quiet = String(!n);
     this.el.oct.textContent = n ? n.en : '';
   }

@@ -159,6 +159,28 @@ try {
     await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
   });
 
+  await check('まん中：止まっているときは「タップで聴く」。押すとマイクで聴き始め、音名と音の大きさの輪が出る。もう一度押すと止まる', async () => {
+    expect((await page.getAttribute('#kouhai-center', 'data-state')) === 'idle', '止まっているのに、まん中が操作の場所になっていない');
+    expect((await text('#kouhai-hint')) === 'タップで聴く', `まん中の字が「${await text('#kouhai-hint')}」`);
+    expect((await page.getAttribute('#kouhai-center', 'aria-label')) === 'マイクで聴く', '読み上げで何のボタンかわからない');
+    const box = await page.locator('#kouhai-center').boundingBox();
+    const stage = await page.locator('#kh-stage').boundingBox();
+    expect(Math.abs(box.x + box.width / 2 - (stage.x + stage.width / 2)) < 3 && box.width > 50, `まん中の円が光背の中心にない（${JSON.stringify(box)}）`);
+    await page.waitForFunction(() => document.querySelector('#probe').hidden, null, { timeout: 5000 }); // 前の操作で出た表示が消えるのを待つ
+    await page.click('#kouhai-center');
+    expect(!(await page.locator('#probe').isVisible()), 'まん中を押したのに、絵の高さを調べる表示が出た');
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '観測中', null, { timeout: 10000 });
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'ラ', null, { timeout: 10000 });
+    expect((await page.getAttribute('#kouhai-center', 'data-state')) === 'note', 'ラが聞こえているのに、まん中が音名の表示にならない');
+    expect((await page.getAttribute('#kouhai-center', 'aria-label')) === '止める', '聴いているときのボタンの名前が「止める」でない');
+    const level = await page.evaluate(() => Number(getComputedStyle(document.querySelector('#kouhai-center')).getPropertyValue('--level')));
+    expect(level > 0.2, `音の大きさの輪が動かない（${level}）`);
+    await shot('k02b-center-note');
+    await page.click('#kouhai-center');
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
+    expect((await page.getAttribute('#kouhai-center', 'data-state')) === 'idle', '止めたあと、まん中が「タップで聴く」に戻らない');
+  });
+
   await check('マイク（440 Hz）で、まん中に「ラ」、読み取りに A4・440 Hz・9時の向き・3周目、朱色の光は左（9時）', async () => {
     await page.click('#btn-mic');
     await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'ラ', null, { timeout: 10000 });
@@ -209,7 +231,7 @@ try {
     expect((await text('#kh-en')) === 'A4', `${await text('#kh-en')}`);
     await shot('k04-touch-a4');
     await page.mouse.up();
-    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === '観', null, { timeout: 5000 });
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').dataset.quiet === 'true', null, { timeout: 5000 });
   });
 
   await check('指で鳴らす：旋律（ファ♯・ミ・レ・ド♯・シ・ラ・シ・ド♯）を弾くと、蓮が開く', async () => {
@@ -250,7 +272,7 @@ try {
     await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'シ', null, { timeout: 5000 });
     await shot('k05b-keys');
     await page.mouse.up();
-    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === '観', null, { timeout: 5000 });
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').dataset.quiet === 'true', null, { timeout: 5000 });
     // オクターブを上げると、いちばん左が ド5
     await page.click('#key-up');
     expect((await text('#key-oct')) === 'ド5', `上げたあと ${await text('#key-oct')}`);
@@ -266,11 +288,11 @@ try {
     expect((await page.locator('#kh-key-row .kh-key').nth(9).getAttribute('aria-pressed')) === 'true', '押している鍵が「押されている」にならない');
     expect((await text('#key-now')) === 'ラ4', `押している音の大きな表示が「${await text('#key-now')}」`);
     await page.keyboard.up('Enter');
-    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === '観', null, { timeout: 5000 });
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').dataset.quiet === 'true', null, { timeout: 5000 });
     await page.keyboard.down(' ');
     await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'ラ', null, { timeout: 5000 });
     await page.keyboard.up(' ');
-    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === '観', null, { timeout: 5000 });
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').dataset.quiet === 'true', null, { timeout: 5000 });
     expect(await page.locator('#key-now').isHidden(), '離しても大きな表示が残る');
     await page.uncheck('#opt-keys');
   });
@@ -334,7 +356,7 @@ try {
     await page.waitForSelector('#dlg-canon[open]');
     for (const v of ['bass', '1', '2']) await page.uncheck(`#dlg-canon input[name="part"][value="${v}"]`);
     await page.click('#canon-play');
-    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent !== '観', null, { timeout: 8000 });
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').dataset.quiet === 'false', null, { timeout: 8000 });
     await page.waitForTimeout(13000); // 3つめの声が入るはずの 16 拍目（約 11.5 秒）をこえる
     expect(await page.locator('#bloom').isHidden(), '声が1つなのに蓮が開いた');
     await page.click('#btn-stop');

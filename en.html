@@ -34,8 +34,8 @@
   <div class="kh-stage" id="kh-stage" data-touch="off">
     <canvas id="cv-kouhai" class="kh-canvas" role="img" aria-label="Halo: pitch laid out on a spiral. C at 12 o'clock, a semitone per step clockwise, one octave per turn. The length and color of the rays show how strong each pitch is."></canvas>
     <div class="kouhai-dial" id="kouhai-dial" aria-hidden="true">
-      <p class="kouhai-center"><span class="kouhai-note" id="kouhai-note" data-quiet="true">○</span><span class="kouhai-oct" id="kouhai-oct"></span></p>
     </div>
+    <button type="button" class="kouhai-center" id="kouhai-center" data-state="idle" aria-label="Listen with the microphone"><span class="kouhai-level" aria-hidden="true"></span><svg class="kouhai-center-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-mic"></use></svg><span class="kouhai-note" id="kouhai-note" data-quiet="true"></span><span class="kouhai-oct" id="kouhai-oct"></span><span class="kouhai-hint" id="kouhai-hint">Tap to listen</span></button>
     <div class="bloom" id="bloom" role="status" hidden>
       <svg class="bloom-lotus" viewBox="-50 -50 100 100" aria-hidden="true"></svg>
       <p class="bloom-text"><span class="bloom-title">Canon</span><span class="bloom-line">The sound comes around.</span></p>
@@ -136,7 +136,7 @@
         <dt>Distance from center</dt><dd>The octave. Low notes are inside, high notes outside. <strong>One turn of the spiral is one octave</strong> (innermost: C2, about 65 Hz; after 7 turns, outermost: C9, about 8,400 Hz).</dd>
         <dt>Length and color of rays</dt><dd>How strong that pitch is. A thousand rays reach out from the spiral. Pick the color with the palette button under the halo (Look): gold, vermilion, blue, purple or rainbow. In <strong>rainbow</strong> the color follows the <strong>note name</strong>, not the strength (the tonic at 12 o’clock is red and the hue goes once round the color wheel), so a note is the same color in every octave and a chord becomes a set of colors.</dd>
         <dt>Vermilion light</dt><dd>The pitch right now. Two faint lights follow the same path, each 0.8 s later.</dd>
-        <dt>Center</dt><dd>The current note name (○ when there is no clear pitch). Touch the picture to see the pitch at that spot.</dd>
+        <dt>Center</dt><dd>The control and status spot. When stopped it says “Tap to listen” (tap to start the microphone). While listening it shows the note name when the pitch is clear, otherwise a status (Quiet, No clear pitch…) and a level ring that fills as the sound gets louder, so you can see at a glance that the microphone hears something. Tap it while listening to stop. Touch anywhere else on the picture to see the pitch at that spot.</dd>
       </dl>
     </section>
 

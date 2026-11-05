@@ -34,8 +34,8 @@
   <div class="kh-stage" id="kh-stage" data-touch="off">
     <canvas id="cv-kouhai" class="kh-canvas" role="img" aria-label="光背。音の高さを螺旋に並べた絵。12時がド、時計回りに半音ずつ、1周で1オクターブ。外へ伸びる光の長さと色が、その高さの強さ。"></canvas>
     <div class="kouhai-dial" id="kouhai-dial" aria-hidden="true">
-      <p class="kouhai-center"><span class="kouhai-note" id="kouhai-note" data-quiet="true">観</span><span class="kouhai-oct" id="kouhai-oct"></span></p>
     </div>
+    <button type="button" class="kouhai-center" id="kouhai-center" data-state="idle" aria-label="マイクで聴く"><span class="kouhai-level" aria-hidden="true"></span><svg class="kouhai-center-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-mic"></use></svg><span class="kouhai-note" id="kouhai-note" data-quiet="true"></span><span class="kouhai-oct" id="kouhai-oct"></span><span class="kouhai-hint" id="kouhai-hint">タップで聴く</span></button>
     <div class="bloom" id="bloom" role="status" hidden>
       <svg class="bloom-lotus" viewBox="-50 -50 100 100" aria-hidden="true"></svg>
       <p class="bloom-text"><span class="bloom-title">カノン</span><span class="bloom-line">響きは、巡る。</span></p>
@@ -136,7 +136,7 @@
         <dt>中心からの距離</dt><dd>オクターブ。内側ほど低く、外側ほど高い。螺旋を<strong>1周すると1オクターブ</strong>上がります（いちばん内側がド C2 の約 65 Hz、7周して いちばん外側がド C9 の約 8,400 Hz）。</dd>
         <dt>光の長さと色</dt><dd>その高さの音の強さ。千本の光が、螺旋から外へ伸びます。光の色は、光背の下のパレットの印（見た目）で、金・朱・青・紫・虹から選べます。<strong>虹</strong>では色が強さではなく<strong>音名</strong>で決まり（12時の主音が赤、時計回りに色相環を1周）、同じ音名は何周目でも同じ色、和音は色の組み合わせになります。</dd>
         <dt>朱色の光</dt><dd>いまの高さ。淡い2つの光が、0.8 秒ずつ遅れて同じ道すじを追いかけます。</dd>
-        <dt>まん中</dt><dd>いまの音の名前（はっきりしないときは「観」）。絵に触れると、その場所の高さが出ます。</dd>
+        <dt>まん中</dt><dd>操作と状態の場所です。止まっているときは「タップで聴く」（押すとマイクで聴き始める）。聴いているあいだは、高さがわかれば音名を、わからなければ「静か」「高さ不明」などの状態と、音の大きさの輪を出します（輪が回るほど大きな音。マイクが音を拾っているかが、ひと目でわかります）。聴いているときに押すと止まります。絵のほかの所に触れると、その場所の高さが出ます。</dd>
       </dl>
     </section>
 

@@ -116,6 +116,10 @@ const el = {
   keyFrom: $('#key-from'),
   keyNow: $('#key-now'),
   canvas: $('#cv-kouhai'),
+  center: $('#kouhai-center'),
+  centerUse: $('#kouhai-center use'),
+  hint: $('#kouhai-hint'),
+  centerNote: $('#kouhai-note'),
   btnAbout: $('#btn-about'),
   fileInput: $('#file-input'),
   micError: $('#mic-error'),
@@ -237,6 +241,8 @@ function analyze(block) {
   setStalled(false);
   const f = computeFeatures(block, engine.sampleRate);
   const level = f.dbA + (unit === 'spl' ? prefs.get('calibration') : 0);
+  // まん中の輪：いま届いている音の大きさ（-70〜-10 dBFS を 0〜1 に）。マイクが音を拾っているかが、ひと目でわかる
+  el.center.style.setProperty('--level', Math.min(1, Math.max(0, (f.dbA + 70) / 60)).toFixed(3));
   const cls = classifier.push(f, level);
   // マイクの音が止められていないか（届いていない音を「聞こえている」ことにしない）
   if (engine.kind === 'mic' && (f.dbZ <= DEAD_DB || engine.micMuted)) silentSince = silentSince || now;
@@ -250,6 +256,73 @@ function analyze(block) {
 
 // ---------- 読み取り（チューナー） ----------
 function renderReadouts() {
+  readouts();
+  paintCenter();
+}
+
+/**
+ * まん中（頭光）：光背のまん中の円を、操作と状態の場所として使う。
+ *   止まっている       … マイクの印と「タップで聴く」。押すとマイクで聴き始める（Claude の中では、例のカノンを鳴らす）
+ *   聴いている・高さ不明 … 音の大きさの輪と、いまの状態（静か・高さ不明・音なし）。押すと止まる
+ *   高さがわかる       … 音名。押すと止まる
+ *   指で鳴らす         … 押しても止まらない（まん中に触れても、いちばん低い音が鳴る）
+ */
+function paintCenter() {
+  const k = engine.kind;
+  const quiet = el.centerNote.dataset.quiet === 'true';
+  let state;
+  let hint = '';
+  let icon = '';
+  let label;
+  if (!k) {
+    state = 'idle';
+    icon = isEmbedded ? 'ic-play' : 'ic-mic';
+    hint = isEmbedded ? L('タップで鳴らす', 'Tap to play') : L('タップで聴く', 'Tap to listen');
+    label = isEmbedded ? L('例のカノンを鳴らす', 'Play the Canon') : L('マイクで聴く', 'Listen with the microphone');
+  } else if (k === 'touch') {
+    state = 'touch';
+    hint = quiet ? L('触れて鳴らす', 'Touch to play') : '';
+    label = '';
+  } else {
+    state = quiet ? 'quiet' : 'note';
+    icon = quiet ? 'ic-stop' : '';
+    hint = !quiet
+      ? ''
+      : stalled || deadMic
+        ? L('音なし', 'No sound')
+        : !snap
+          ? L('聞いています', 'Listening')
+          : snap.cls.id === 'silence'
+            ? L('静か', 'Quiet')
+            : L('高さ不明', 'No clear pitch');
+    label = L('止める', 'Stop');
+  }
+  if (el.center.dataset.state !== state) el.center.dataset.state = state;
+  if (el.hint.textContent !== hint) el.hint.textContent = hint;
+  if (icon) el.centerUse.setAttribute('href', `#${icon}`);
+  el.center.querySelector('svg').style.display = icon ? '' : 'none';
+  if (label) el.center.setAttribute('aria-label', label);
+  else el.center.removeAttribute('aria-label');
+  el.center.tabIndex = state === 'touch' ? -1 : 0;
+}
+
+// まん中のボタンの上では、絵に触れて調べる係を動かさない（指で鳴らすときは、まん中は下の絵へ通すので関係しない）
+for (const type of ['pointerdown', 'pointermove']) {
+  el.center.addEventListener(type, (e) => {
+    if (engine.kind !== 'touch') e.stopPropagation();
+  });
+}
+el.center.addEventListener('click', () => {
+  if (engine.kind === 'touch') return;
+  if (engine.active) {
+    engine.stop();
+    return;
+  }
+  if (isEmbedded) el.badge.click(); // Claude の中ではマイクが使えないので、例のカノンを鳴らす
+  else el.btnMic.click();
+});
+
+function readouts() {
   if (showingExample) {
     // 最初の例：止めた絵の説明
     stage.setNote(null);
@@ -366,6 +439,7 @@ function updateButtons() {
   el.btnTouch.setAttribute('aria-pressed', String(k === 'touch'));
   el.stage.dataset.touch = k === 'touch' ? 'on' : 'off';
   showTouchOpts();
+  paintCenter();
 }
 
 function showError(msg) {
