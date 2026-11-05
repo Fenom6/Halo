@@ -349,6 +349,8 @@ if (existsSync(join(ROOT, 'dist/halo-artifact.html'))) {
     });
     await check('1ファイル版：指で鳴らすと映り、残すと Claude の保存の機能で絵を保存する', async () => {
       await p.click('#btn-touch');
+      // 指で鳴らすが始まる（音の部品の準備が終わる）のを待ってから触れる。待たずに触れると、その指は鳴らない
+      await p.waitForFunction(() => document.querySelector('#btn-touch').getAttribute('aria-pressed') === 'true', null, { timeout: 8000 });
       const at = await spiralXY(p, 60);
       await p.mouse.move(at.x, at.y);
       await p.mouse.down();
