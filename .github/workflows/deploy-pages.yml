@@ -1,0 +1,35 @@
+# GitHub Pages に公開する（手動で実行するときだけ動く）
+# 使う前に：Settings → Pages → Source を「GitHub Actions」にする。
+# 無料プランでは、リポジトリが公開（Public）のときだけ Pages が使えます。
+name: Deploy to GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: 公開するファイルだけを集める
+        run: |
+          mkdir -p _site
+          cp -r index.html manifest.webmanifest sw.js css js icons _site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
