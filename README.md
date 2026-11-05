@@ -6,7 +6,7 @@
 
 仏像の後ろにある光の輪を「光背（こうはい）」、英語で halo（ヘイロー）と呼びます。このアプリでは、その光の輪の上に音の高さを並べます。
 
-| マイクで歌った音（ラ A4） | 指で和音（ドミソ）を鳴らす | 保存した画像 | 英語版（黒背景） |
+| マイクで歌った音（ラ A4） | 指で和音（ドミソ）を鳴らす | 保存した画像 | 英語版 |
 | --- | --- | --- | --- |
 | ![ラの音を入力した画面。中央に「ラ」、9時の方向に光、下にチューナー](docs/images/halo-mic.jpg) | ![ドミソを鳴らすと、12時・4時・7時の方向に光が伸びる](docs/images/halo-touch.jpg) | ![カノンの3声がそろい、蓮の模様が開いた保存画像](docs/images/halo-saved.jpg) | ![英語版の画面。黒い背景で A4 を表示](docs/images/halo-english.jpg) |
 
@@ -19,7 +19,8 @@
 - **サンプル：パッヘルベル「カノン ニ長調」**：楽譜から音をその場で合成します（録音ではありません）。低音・第1〜3声を選んで鳴らせるので、3つの声が同じ旋律を2小節ずつ遅れて追いかける「カノン」の構造を、光の動きで確かめられます
 - **指で鳴らす**：螺旋に触れると、最も近い半音の音が倍音つきで鳴り、そのまま光の輪に表示されます。複数の指で和音を鳴らせます（最大4音）
 - **画像として保存**：表示中の光の輪を、音名と日時入りの PNG 画像として保存・共有できます
-- **英語版**：`en.html` は英語表示・黒背景の版です。画面右上で日本語版と切り替えられます
+- **黒い背景**：日本語版・英語版とも、端末の設定にかかわらず黒い背景で表示します（光が金色に輝きます）
+- **英語版**：`en.html` は英語表示の版です。画面右上で日本語版と切り替えられます
 - **オフライン対応**：ホーム画面に追加でき、一度開けば通信がない場所でも使えます
 - **解説つき**：画面右上の「i」から、見方・物理・数学・音楽・英語・コードの解説を読めます
 
@@ -49,7 +50,6 @@
 
 - マイクの音は端末内でのみ処理され、録音・送信は行いません
 - 画像の保存は、利用者が「残す」を押したときだけ端末内で行います
-- 表示設定は、この端末のブラウザ（localStorage）にのみ保存されます
 - 外部への通信は、文字（Google Fonts）の読み込みのみです
 
 ## 公開のしかた
@@ -92,7 +92,7 @@ npm i --no-save playwright && npx playwright install chromium
 
 ```
 index.html            日本語版の画面（解説を含む）
-en.html               英語版の画面（黒背景）
+en.html               英語版の画面
 manifest*.webmanifest ホーム画面に追加するための設定
 sw.js                 オフライン対応（Service Worker）
 css/halo.css          スタイル（色と文字の設定は先頭の :root）
@@ -121,7 +121,7 @@ tools/                開発用ツール（サーバー・点検・アイコン�
 
 ## English
 
-**Halo** is a web app that shows the pitch of sound as a ring of light. No install or sign-up: it runs in a phone's browser. Open `en.html` for the English version (black background).
+**Halo** is a web app that shows the pitch of sound as a ring of light. No install or sign-up: it runs in a phone's browser. Open `en.html` for the English version. Both versions always use a black background.
 
 - **Laid out like a clock face**: C is at 12 o'clock, and each step clockwise is a semitone, so the twelve note names fall on the twelve hours
 - **One octave per turn**: low notes are inside the spiral, high notes outside. Notes an octave apart point the same way, so **chords and harmonics appear as shapes**

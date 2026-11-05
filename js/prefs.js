@@ -2,8 +2,6 @@
  * prefs.js — 設定を覚えておく係（この端末のブラウザの localStorage に保存）
  * 保存できない環境（プライベートモードなど）でも、その場では使えるようにしてある。
  */
-import { isEmbedded } from './claude.js';
-
 const KEY = 'halo.prefs.v1';
 
 export const DEFAULT_PREFS = {
@@ -11,7 +9,6 @@ export const DEFAULT_PREFS = {
   minDb: -100, // 色の濃さ：これより小さい成分は地の色
   maxDb: -25,
   keepAwake: true, // 観ているあいだは画面を消さない
-  theme: 'auto', // 'auto' | 'light' | 'dark'
 };
 
 function load() {
@@ -39,11 +36,3 @@ export const prefs = {
     }
   },
 };
-
-/** 表示テーマを当てる（Claude の中では、Claude 側のテーマに任せる） */
-export function applyTheme() {
-  if (isEmbedded) return;
-  const t = prefs.get('theme');
-  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
-  else delete document.documentElement.dataset.theme;
-}

@@ -141,11 +141,11 @@ test('英語版（en.html）：黒い地・英語・同じ部品。日本語版�
   assert.match(en, /<html lang="en" data-theme="dark" class="black">/, '英語・暗い表示・黒い地');
   assert.match(en, /<link rel="manifest" href="manifest-en\.webmanifest">/);
   assert.match(en, /<script type="module" src="js\/main\.js"><\/script>/, '同じ係（main.js）で動く');
-  // 日本語版にある部品（id）は、英語版にもある（表示の明るさの切り替えだけは、英語版はいつも黒なので無い）
+  // 日本語版にある部品（id）は、英語版にもある（用語の節だけは、日本語版は「英語の用語」、英語版は「日本語のことば」で中身がちがう）
   const ids = (h) => new Set([...h.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]));
   const jaIds = ids(html);
   const enIds = ids(en);
-  for (const id of jaIds) if (!['ab-view-set', 'ab-view', 'ab-en'].includes(id)) assert.ok(enIds.has(id), `英語版に #${id} がない`);
+  for (const id of jaIds) if (!['ab-en'].includes(id)) assert.ok(enIds.has(id), `英語版に #${id} がない`);
   assert.match(html, /<a class="kh-lang" href="en\.html"/, '日本語版から英語版へ');
   assert.match(en, /<a class="kh-lang" href="\.\/"/, '英語版から日本語版へ');
   // 本文の日本語は、ロゴの「光背」・「日本語」の入口・日本語のことばの説明だけ
@@ -157,4 +157,18 @@ test('英語版（en.html）：黒い地・英語・同じ部品。日本語版�
   assert.equal(m.lang, 'en');
   assert.equal(m.start_url, './en.html');
   assert.equal(m.background_color, '#000000');
+});
+
+test('日本語版も英語版も、いつも黒い地（切り替えなし）', async () => {
+  const en = await read('en.html');
+  for (const [name, page] of [['index.html', html], ['en.html', en]]) {
+    assert.match(page, /<html lang="(ja|en)" data-theme="dark" class="black">/, `${name}：黒い地`);
+    assert.match(page, /<meta name="theme-color" content="#000000">/, `${name}：ブラウザの帯も黒`);
+    assert.ok(!/kh-theme|ab-view-set/.test(page), `${name}：表示の明るさの切り替えが残っている`);
+  }
+  for (const f of ['manifest.webmanifest', 'manifest-en.webmanifest']) {
+    const m = JSON.parse(await read(f));
+    assert.equal(m.background_color, '#000000', f);
+    assert.equal(m.theme_color, '#000000', f);
+  }
 });
