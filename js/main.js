@@ -29,6 +29,8 @@ import { L, clockText } from './i18n.js';
 import { tuning, onTuning, describe, pcName, isAccidental, hourOf, midiHz } from './tuning.js';
 import { ClipRecorder, videoType, videoExt, clock as recClock } from './recorder.js';
 import { initTuningSheet, loadTuning } from './tuning-ui.js';
+import { TRAILS, rainbowTable } from './look.js';
+import { initLookSheet, currentLook, applyLookToPage } from './look-ui.js';
 
 const ANALYSIS_MS = 80;
 const UI_MS = 120;
@@ -163,6 +165,15 @@ function applyPalette() {
   stage.setPalette(lut, { bg: t['scope-bg'], grid: t['scope-grid'], ink: t['scope-ink'], muted: t['scope-muted'], mark: t['spec-mark'], gold: t.gold });
   stage.setCanonColors(VOICE_TOKENS.map((k) => t[k] || t['spec-mark']));
   redrawStill();
+}
+
+/** 見た目の設定（光の色・軌跡の長さ・明るさ）を、ページと光背に映す */
+function applyLook(look) {
+  applyLookToPage(look); // 光の色（CSS の --spec-1〜4）と、明るさの幕
+  stage.view.setTrail(TRAILS[look.trail].frames);
+  stage.view.setRainbow(look.hue === 'niji' ? rainbowTable() : null);
+  applyPalette(); // 新しい CSS の色を読み直して、光の色の表を作り直す
+  if (showingExample && !engine.active) renderExample();
 }
 
 function configure(sampleRate) {
@@ -904,7 +915,8 @@ if (isEmbedded) el.note.hidden = false;
 
 // 始めの状態
 stage.resize();
-applyPalette();
+applyLook(currentLook());
+initLookSheet({ button: $('#btn-look'), dialog: $('#dlg-look'), onChange: applyLook });
 updateButtons();
 setStatus(L('停止中', 'Stopped'), false);
 setCaption();

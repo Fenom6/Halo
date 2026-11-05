@@ -63,7 +63,7 @@
       <div class="cents" id="kh-cents" data-off="true" aria-hidden="true"><i class="cents-zero"></i><i class="cents-needle" id="kh-needle"></i></div>
       <p class="readout-sub" id="kh-sub">&nbsp;</p>
     </div>
-    <button type="button" class="btn btn-quiet kh-tuning" id="btn-tuning" aria-haspopup="dialog"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-world"></use></svg><span class="kh-tuning-text">A4 = 440 Hz · C D E · 12 o'clock: C</span><span class="visually-hidden"> (open settings for music around the world)</span></button>
+    <div class="kh-settings-row"><button type="button" class="btn btn-quiet kh-tuning" id="btn-tuning" aria-haspopup="dialog"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-world"></use></svg><span class="kh-tuning-text">A4 = 440 Hz · C D E · 12 o'clock: C</span><span class="visually-hidden"> (open settings for music around the world)</span></button><button type="button" class="btn btn-quiet kh-look" id="btn-look" aria-haspopup="dialog" aria-label="Look (color, trail, brightness)"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-look"></use></svg></button></div>
 
     <div class="kh-go">
       <button type="button" class="btn btn-primary btn-big" id="btn-mic"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-mic"></use></svg><span id="btn-mic-text">Microphone</span></button>
@@ -111,6 +111,15 @@
   <div class="tn-body" id="tuning-body"></div>
 </dialog>
 
+<dialog class="sheet kh-look-sheet" id="dlg-look" closedby="any" aria-labelledby="dlg-look-h">
+  <div class="sheet-head">
+    <h2 id="dlg-look-h">Look</h2>
+    <form method="dialog"><button class="btn btn-icon-only" value="" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-close"></use></svg></button></form>
+  </div>
+  <p class="sheet-lead">Your choice shows on the halo above right away (saved on this device).</p>
+  <div class="tn-body" id="look-body"></div>
+</dialog>
+
 <dialog class="sheet sheet-tall kh-about" id="dlg-about" closedby="any" aria-labelledby="dlg-about-h">
   <div class="sheet-head">
     <h2 id="dlg-about-h">How Halo works</h2>
@@ -124,7 +133,7 @@
       <dl class="kh-dl">
         <dt>Direction</dt><dd>The note name. Like a clock face: <strong>C is at 12 o'clock</strong>, then one semitone per hour clockwise (C♯ at 1, D at 2 … A at 9, B at 11). The twelve notes fit exactly on the twelve hours.</dd>
         <dt>Distance from center</dt><dd>The octave. Low notes are inside, high notes outside. <strong>One turn of the spiral is one octave</strong> (innermost: C2, about 65 Hz; after 7 turns, outermost: C9, about 8,400 Hz).</dd>
-        <dt>Length and color of rays</dt><dd>How strong that pitch is. A thousand rays reach out from the spiral.</dd>
+        <dt>Length and color of rays</dt><dd>How strong that pitch is. A thousand rays reach out from the spiral. Pick the color with the palette button under the halo (Look): gold, vermilion, blue, purple or rainbow. In <strong>rainbow</strong> the color follows the <strong>note name</strong>, not the strength (the tonic at 12 o’clock is red and the hue goes once round the color wheel), so a note is the same color in every octave and a chord becomes a set of colors.</dd>
         <dt>Vermilion light</dt><dd>The pitch right now. Two faint lights follow the same path, each 0.8 s later.</dd>
         <dt>Center</dt><dd>The current note name (○ when there is no clear pitch). Touch the picture to see the pitch at that spot.</dd>
       </dl>
@@ -221,6 +230,7 @@
     <symbol id="ic-keep" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.8v.6M16.2 12h-.6M12 16.2v-.6M7.8 12h.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
     <symbol id="ic-world" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.6 12h16.8M12 3.4c2.4 2.4 3.6 5.3 3.6 8.6s-1.2 6.2-3.6 8.6c-2.4-2.4-3.6-5.3-3.6-8.6s1.2-6.2 3.6-8.6Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
     <symbol id="ic-rec" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 10.5l5-3v9l-5-3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="9.5" cy="12" r="2.2" fill="currentColor"/></symbol>
+    <symbol id="ic-look" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.3 0 1.9-.8 1.9-1.7 0-1.2-1-1.5-1-2.6 0-1 .8-1.7 1.9-1.7h2.1a3.6 3.6 0 0 0 3.6-3.6C20.5 6.8 16.7 3.5 12 3.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="7.6" cy="11.4" r="1.3" fill="currentColor"/><circle cx="10.4" cy="7.4" r="1.3" fill="currentColor"/><circle cx="15.2" cy="7.8" r="1.3" fill="currentColor"/></symbol>
   </defs>
 </svg>
 <!-- HALO:BODY-END -->

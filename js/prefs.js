@@ -11,6 +11,7 @@ export const DEFAULT_PREFS = {
   keepAwake: true, // 観ているあいだは画面を消さない
   touchKeys: false, // 指で鳴らすとき、鍵盤も出す
   touchGlide: false, // 指で鳴らすとき、半音にそろえず、指の位置そのままの高さで鳴らす（ポルタメント）
+  look: null, // 見た目（光の色・軌跡の長さ・明るさ）。null ならはじめの見た目（look.js の DEFAULT_LOOK）
 };
 
 function load() {

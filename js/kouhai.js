@@ -169,7 +169,7 @@ export function armBinMap(binHz, bins, count = ARM_COUNT) {
 const BUCKETS = 10; // 光を明るさで10組に分け、組ごとにまとめて描く（速く描くため）
 const ORB_SIZE = [5.5, 4.5, 4]; // 3つの光の大きさ（今の高さ、追いかける光1、2）
 const ORB_STRENGTH = [1, 0.62, 0.38];
-const TRAIL = 24; // 光が残す軌跡の長さ（コマ数）
+const TRAIL = 24; // 光が残す軌跡の長さ（コマ数）。はじめの値。見た目の設定で変えられる（setTrail）
 
 const rgbStr = ([r, g, b], a = 1) => `rgba(${r},${g},${b},${a})`;
 
@@ -218,6 +218,18 @@ export class KouhaiView {
     this.sizeCss = 0; // 円の直径（CSS の px）
     this.orbs = [0, 1, 2].map(() => ({ turn: null, alpha: 0, trail: [] }));
     this.voiceColors = null; // カノンのときだけ、3つの声を色分けする（[第1声, 第2声, 第3声] の色）
+    this.trailLen = TRAIL;
+    this.rainbow = null; // 虹のとき：[12の向き][3段の明るさ] の色。null なら、強さで色を変える（金・朱・青・紫）
+  }
+
+  /** 3つの光が残す軌跡の長さ（コマ数） */
+  setTrail(frames) {
+    this.trailLen = Math.max(2, Math.round(frames) || TRAIL);
+  }
+
+  /** 虹（音名ごとの色）にする。table は look.js の rainbowTable()。null で、強さで色を変える描き方に戻す */
+  setRainbow(table) {
+    this.rainbow = table;
   }
 
   /** 3つの光を色分けする（カノンの3つの声）。null で、ふだんの「朱色の光と、淡い2つの光」に戻す */
@@ -372,6 +384,10 @@ export class KouhaiView {
     // 静かなときは基準を下げすぎない（雑音が長い光にならないように）
     const ref = Math.max(top, minDb + 0.45 * span);
     const RANGE = 45;
+    if (this.rainbow) {
+      this.drawRainbow(level, ref, RANGE);
+      return;
+    }
     const paths = [];
     for (let k = 0; k < BUCKETS; k++) paths.push(new Path2D());
     for (let i = 0; i < ARM_COUNT; i++) {
@@ -390,6 +406,38 @@ export class KouhaiView {
       const idx = Math.round(255 * (0.2 + (0.8 * (k + 0.5)) / BUCKETS)) * 4;
       ctx.strokeStyle = `rgb(${lut[idx]},${lut[idx + 1]},${lut[idx + 2]})`;
       ctx.lineWidth = dpr * (0.9 + (0.9 * k) / (BUCKETS - 1));
+      ctx.stroke(paths[k]);
+    }
+  }
+
+  /**
+   * 虹：光の色を「向き（音名）」で決める。いちばん近い半音の向きの色にするので、同じ音名は何周目でも同じ色、
+   * 和音は色の組み合わせになる。強さは、3段の明るさと太さで表す（12 × 3 組にまとめて描く）
+   */
+  drawRainbow(level, ref, RANGE) {
+    const { ctx, cx, cy, dpr } = this;
+    const { minDb, maxDb } = this.opts;
+    const span = maxDb - minDb;
+    const paths = Array.from({ length: 36 }, () => new Path2D());
+    for (let i = 0; i < ARM_COUNT; i++) {
+      let u = (level[i] - minDb) / span;
+      if (!(u > 0.04)) continue;
+      if (u > 1) u = 1;
+      const rel = (level[i] - (ref - RANGE)) / RANGE;
+      const len = rel > 0 ? Math.pow(Math.min(1, rel), 2.2) : 0;
+      const r0 = this.root[i];
+      const r1 = r0 + this.armMin + this.armMax * len;
+      const frac = (((i + 0.5) / ARM_COUNT) * KOUHAI_OCTAVES) % 1; // 1周のうちのどこか（0 が12時）
+      const dir = Math.round(frac * 12) % 12;
+      const step = u < 0.45 ? 0 : u < 0.7 ? 1 : 2;
+      const p = paths[dir * 3 + step];
+      p.moveTo(cx + this.cos[i] * r0, cy + this.sin[i] * r0);
+      p.lineTo(cx + this.cos[i] * r1, cy + this.sin[i] * r1);
+    }
+    for (let k = 0; k < 36; k++) {
+      const step = k % 3;
+      ctx.strokeStyle = this.rainbow[Math.floor(k / 3)][step];
+      ctx.lineWidth = dpr * (0.9 + 0.45 * step);
       ctx.stroke(paths[k]);
     }
   }
@@ -428,7 +476,7 @@ export class KouhaiView {
       const x = cx + p.x;
       const y = cy + p.y;
       o.trail.push(x, y);
-      if (o.trail.length > TRAIL * 2) o.trail.splice(0, 2);
+      if (o.trail.length > this.trailLen * 2) o.trail.splice(0, o.trail.length - this.trailLen * 2);
       const color = this.voiceColors ? this.voiceColors[v] : colors.mark;
       const strength = (this.voiceColors ? 0.95 : ORB_STRENGTH[v]) * o.alpha;
       // 軌跡（古いほど淡く、細く）
