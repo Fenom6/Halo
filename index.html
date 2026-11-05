@@ -53,6 +53,7 @@
       <div class="cents" id="kh-cents" data-off="true" aria-hidden="true"><i class="cents-zero"></i><i class="cents-needle" id="kh-needle"></i></div>
       <p class="readout-sub" id="kh-sub">　</p>
     </div>
+    <button type="button" class="btn btn-quiet kh-tuning" id="btn-tuning" aria-haspopup="dialog"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-world"></use></svg><span class="kh-tuning-text">A4 = 440 Hz・ドレミ・12時：ド</span><span class="visually-hidden">（世界の音楽に合わせる設定を開く）</span></button>
 
     <div class="kh-go">
       <button type="button" class="btn btn-primary btn-big" id="btn-mic"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-mic"></use></svg><span id="btn-mic-text">マイクで観る</span></button>
@@ -88,6 +89,15 @@
     <label class="check"><input type="checkbox" name="part" value="2" checked><span>第3声（16拍おくれて入る）</span></label>
   </fieldset>
   <button type="button" class="btn btn-primary btn-big" id="canon-play"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-play"></use></svg>鳴らす</button>
+</dialog>
+
+<dialog class="sheet sheet-tall kh-tuning-sheet" id="dlg-tuning" closedby="any" aria-labelledby="dlg-tuning-h">
+  <div class="sheet-head">
+    <h2 id="dlg-tuning-h">世界の音楽に合わせる</h2>
+    <form method="dialog"><button class="btn btn-icon-only" value="" aria-label="閉じる"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-close"></use></svg></button></form>
+  </div>
+  <p class="sheet-lead">音の高さそのものは、どの国の音楽でも同じように光背に並びます。ちがうのは「どう呼ぶか」と「どこを基準にするか」。ここで、ふだん使っている決まりに合わせられます（この端末に覚えておきます）。</p>
+  <div class="tn-body" id="tuning-body"></div>
 </dialog>
 
 <dialog class="sheet sheet-tall kh-about" id="dlg-about" closedby="any" aria-labelledby="dlg-about-h">
@@ -150,6 +160,19 @@
       </dl>
     </section>
 
+    <section aria-labelledby="ab-world">
+      <h3 id="ab-world">世界の音楽で使う</h3>
+      <p>光の輪の下のボタン（地球の印）で、次の4つを、ふだん使っている決まりに合わせられます。</p>
+      <dl class="kh-dl">
+        <dt>基準の高さ</dt><dd>ラ（A4）を何 Hz にするか。国際的な標準は 440 Hz ですが、日本やヨーロッパの多くのオーケストラは 442 Hz、バロック音楽は 415 Hz など、場所や時代でちがいます。440 Hz の音を、442 Hz の基準で聞くと「ラより約 8 セント低い」と出ます（1 セント＝半音の 1/100）。</dd>
+        <dt>音名の表し方</dt><dd>同じ高さでも、国によって呼び方がちがいます。ドレミ（日本）、C D E（英語圏）、ドイツ式（シを H、シ♭を B と呼ぶ）、Do Re Mi（フランス・イタリア・中南米など）、移動ド、インドのサルガム（Sa Re Ga）、中国などの数字譜（1 2 3）から選べます。</dd>
+        <dt>主音（12時に置く音）</dt><dd>螺旋が回って、選んだ音が真上に来ます。曲の主音やインド音楽のサを12時に置くと、どの調の曲でも、音階が同じ形に見えます。移動ド・サルガム・数字譜では、この音が「ド・Sa・1」になります。</dd>
+        <dt>四分音</dt><dd>半音の半分（50 セント）。アラブ・トルコ・ペルシャの音楽では、半音より細かい音を使います。オンにすると、半音と半音のまん中の音を「ミ−¼（ミより四分音低い）」と呼び、光背に「○時半」の細い筋を引きます。</dd>
+      </dl>
+      <p><strong>数学</strong>：基準を 440 から a に変えると、すべての音の周波数が a ÷ 440 倍になります。セントで書くと 1200 × log<sub>2</sub>（a ÷ 440）。442 なら 1200 × log<sub>2</sub>（442 ÷ 440）≒ <strong>7.9 セント</strong>上がります。</p>
+      <p><strong>英語</strong>：concert pitch（演奏の基準の高さ）、tonic（主音）、solfège（ソルフェージュ：ドレミで歌うこと）、quarter tone（四分音）。</p>
+    </section>
+
     <section aria-labelledby="ab-code">
       <h3 id="ab-code">コード：どうやって描いているか</h3>
       <ol class="kh-steps">
@@ -165,7 +188,8 @@
       <h3 id="ab-limit">できること・できないこと</h3>
       <ul class="kh-bullets">
         <li>まん中の音名は、高さがはっきりした音（声・楽器・口笛など）のときだけ出ます。和音では、いちばん強い成分を出します。</li>
-        <li>ド C2（約 65 Hz）より低い音と、ド C9（約 8,400 Hz）より高い音は、螺旋の外なので描きません。</li>
+        <li>ド C2（約 65 Hz）より低い音と、ド C9（約 8,400 Hz）より高い音は、螺旋の外なので描きません（主音を変えると、半オクターブの範囲で上下します）。</li>
+        <li>音名は 12 の半音（四分音をオンにすると 24）で付けます。純正律やインドのシュルティ、ガムランの音階のように、この格子に乗らない音は、いちばん近い名前と「セント」のずれで表します。</li>
         <li>音はこの端末の中で計算するだけです（録音も送信もしません）。</li>
       </ul>
     </section>
@@ -185,6 +209,7 @@
     <symbol id="ic-note" viewBox="0 0 24 24"><path d="M9 18.2V5.6l10-2v12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="6.6" cy="18.2" r="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16.6" cy="15.6" r="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
     <symbol id="ic-touch" viewBox="0 0 24 24"><path d="M10 20.5l-3.4-4.3a1.4 1.4 0 0 1 2.1-1.8l1.3 1.3V8.6a1.4 1.4 0 0 1 2.8 0v4.6l3.9.7c1.2.2 2 1.3 1.8 2.5l-.7 4.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.2 8.6a4.2 4.2 0 0 1 8.4 0M4.6 8.6a6.8 6.8 0 0 1 13.6 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
     <symbol id="ic-keep" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.8v.6M16.2 12h-.6M12 16.2v-.6M7.8 12h.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="ic-world" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.6 12h16.8M12 3.4c2.4 2.4 3.6 5.3 3.6 8.6s-1.2 6.2-3.6 8.6c-2.4-2.4-3.6-5.3-3.6-8.6s1.2-6.2 3.6-8.6Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
   </defs>
 </svg>
 <!-- HALO:BODY-END -->

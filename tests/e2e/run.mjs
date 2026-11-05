@@ -91,6 +91,23 @@ const markX = (p) =>
     }
     return cnt ? sx / cnt / c.width : -1;
   });
+/** 朱色の光の縦の位置（0 が上端、1 が下端）。見つからなければ −1 */
+const markY = (p) =>
+  p.evaluate(() => {
+    const c = document.querySelector('#cv-kouhai');
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    const n = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--spec-mark').trim().slice(1), 16);
+    const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    let sy = 0;
+    let cnt = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      if (Math.abs(d[i] - r) + Math.abs(d[i + 1] - g) + Math.abs(d[i + 2] - b) < 40) {
+        sy += Math.floor(i / 4 / c.width);
+        cnt++;
+      }
+    }
+    return cnt ? sy / cnt / c.height : -1;
+  });
 /** 螺旋の上で、MIDI 番号 m の音の場所（画面の座標）。kouhai.js の spiralPoint と同じ式 */
 const spiralXY = (p, m) =>
   p.evaluate((midi) => {
@@ -241,10 +258,55 @@ try {
     await page.click('#btn-about');
     await page.waitForSelector('#dlg-about[open]');
     const body = await text('#dlg-about');
-    for (const w of ['見方', '物理', '数学', '英語', 'コード', 'log', 'octave', 'armBinMap']) expect(body.includes(w), `「${w}」がない`);
+    for (const w of ['見方', '物理', '数学', '英語', 'コード', 'log', 'octave', 'armBinMap', '世界の音楽で使う', 'サルガム', '四分音']) expect(body.includes(w), `「${w}」がない`);
     await shot('k08-about');
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
+  });
+
+  await check('世界の音楽に合わせる：基準 442 Hz・サルガム・主音レにすると、440 Hz は「Pa」・約 −8 セント・7時の向き。開き直しても覚えている', async () => {
+    expect((await text('#btn-tuning')).includes('A4 = 440 Hz・ドレミ・12時：ド'), `設定の要約が「${await text('#btn-tuning')}」`);
+    await page.click('#btn-tuning');
+    await page.waitForSelector('#dlg-tuning[open]');
+    expect((await page.locator('#dlg-tuning input[name="naming"]').count()) === 7, '音名の表し方が7つない');
+    expect((await page.locator('#tn-a4 option').count()) >= 14, '基準の高さの選びが少ない');
+    await page.selectOption('#tn-a4', '442');
+    await page.check('#dlg-tuning input[name="naming"][value="sargam"]');
+    await page.selectOption('#tn-tonic', '2');
+    await shot('k08b-tuning-sheet');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    const summary = await text('#btn-tuning');
+    for (const w of ['A4 = 442 Hz', 'Sa Re Ga', '12時：レ']) expect(summary.includes(w), `要約に「${w}」がない（${summary}）`);
+    const labels = await page.locator('#kouhai-dial .kouhai-pc').allInnerTexts();
+    expect(labels[0] === 'Sa' && labels[7] === 'Pa' && labels.length === 12, `まわりの音名が ${labels.join(' ')}`);
+    expect((await text('#kh-caption')).startsWith('12時がSa'), await text('#kh-caption'));
+    await page.click('#btn-mic');
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'Pa', null, { timeout: 10000 });
+    await page.waitForTimeout(1200);
+    const sub = await text('#kh-sub');
+    expect(/[−-][78] セント/.test(sub), `442 Hz の基準で 440 Hz のずれが「${sub}」`);
+    expect(sub.includes('7時の向き・3周目'), sub);
+    const [x, y] = [await markX(page), await markY(page)];
+    expect(x > 0 && x < 0.5 && y > 0.5, `朱色の光が (${x.toFixed(2)}, ${y.toFixed(2)})（左下＝7時側のはず）`);
+    await shot('k08c-tuning-sargam');
+    await page.click('#btn-mic');
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
+    await page.reload();
+    await page.waitForFunction(() => document.querySelector('#kh-hz').textContent.includes('例'), null, { timeout: 10000 });
+    expect((await text('#btn-tuning')).includes('A4 = 442 Hz'), '開き直すと設定を忘れている');
+    expect((await page.locator('#kouhai-dial .kouhai-pc').first().innerText()) === 'Sa', '開き直すと音名が戻っている');
+    // 四分音：オンにすると要約に出る。最初の設定に戻すと、すべて戻る
+    await page.click('#btn-tuning');
+    await page.waitForSelector('#dlg-tuning[open]');
+    await page.check('#tn-quarter');
+    expect((await text('#btn-tuning')).includes('四分音'), '四分音が要約に出ない');
+    await page.click('.tn-reset');
+    expect(!(await page.isChecked('#tn-quarter')), '戻しても四分音がオンのまま');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    expect((await text('#btn-tuning')).includes('A4 = 440 Hz・ドレミ・12時：ド'), `戻したあとの要約が「${await text('#btn-tuning')}」`);
+    expect((await page.locator('#kouhai-dial .kouhai-pc').first().innerText()) === 'ド', '戻したあと、12時がドでない');
   });
 
   await check('日本語版も、端末が明るい表示でも黒い地（光背の地も、ページの地も、まっ黒）。表示の切り替えはない', async () => {

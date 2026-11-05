@@ -53,6 +53,7 @@
       <div class="cents" id="kh-cents" data-off="true" aria-hidden="true"><i class="cents-zero"></i><i class="cents-needle" id="kh-needle"></i></div>
       <p class="readout-sub" id="kh-sub">&nbsp;</p>
     </div>
+    <button type="button" class="btn btn-quiet kh-tuning" id="btn-tuning" aria-haspopup="dialog"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-world"></use></svg><span class="kh-tuning-text">A4 = 440 Hz · C D E · 12 o'clock: C</span><span class="visually-hidden"> (open settings for music around the world)</span></button>
 
     <div class="kh-go">
       <button type="button" class="btn btn-primary btn-big" id="btn-mic"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-mic"></use></svg><span id="btn-mic-text">Microphone</span></button>
@@ -88,6 +89,15 @@
     <label class="check"><input type="checkbox" name="part" value="2" checked><span>Voice 3 (enters 16 beats later)</span></label>
   </fieldset>
   <button type="button" class="btn btn-primary btn-big" id="canon-play"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-play"></use></svg>Play</button>
+</dialog>
+
+<dialog class="sheet sheet-tall kh-tuning-sheet" id="dlg-tuning" closedby="any" aria-labelledby="dlg-tuning-h">
+  <div class="sheet-head">
+    <h2 id="dlg-tuning-h">Music around the world</h2>
+    <form method="dialog"><button class="btn btn-icon-only" value="" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-close"></use></svg></button></form>
+  </div>
+  <p class="sheet-lead">Pitch itself sits on the halo the same way in every musical culture. What differs is what we call the notes and where we measure from. Match the conventions you use here (saved on this device).</p>
+  <div class="tn-body" id="tuning-body"></div>
 </dialog>
 
 <dialog class="sheet sheet-tall kh-about" id="dlg-about" closedby="any" aria-labelledby="dlg-about-h">
@@ -147,6 +157,18 @@
       </dl>
     </section>
 
+    <section aria-labelledby="ab-world">
+      <h3 id="ab-world">Music around the world</h3>
+      <p>The button under the halo (the globe) lets you match four conventions.</p>
+      <dl class="kh-dl">
+        <dt>Reference pitch</dt><dd>How many Hz A4 is. The international standard is 440 Hz, but many orchestras in Japan and Europe tune to 442 Hz, and Baroque music often uses 415 Hz. Heard against 442 Hz, a 440 Hz tone reads about 8 cents flat (1 cent = 1/100 of a semitone).</dd>
+        <dt>Note names</dt><dd>The same pitch has different names in different places: Do Re Mi in Japanese kana, C D E (English), German (B is H and B♭ is B), fixed Do Re Mi (France, Italy, Latin America…), movable do, Indian sargam (Sa Re Ga) and numbered notation (1 2 3) used in China and elsewhere.</dd>
+        <dt>Tonic at 12 o'clock</dt><dd>The spiral turns so the chosen note is at the top. Put the tonic of a song, or Sa in Indian music, at 12 o'clock and every key shows its scale as the same shape. With movable do, sargam and jianpu this note becomes Do, Sa or 1.</dd>
+        <dt>Quarter tones</dt><dd>Half a semitone (50 cents). Arabic, Turkish and Persian music use steps smaller than a semitone. Turn this on to name the note halfway between two semitones, like “E−¼” (a quarter tone below E), and draw thin half-hour lines on the halo.</dd>
+      </dl>
+      <p><strong>Math</strong>: changing the reference from 440 to a multiplies every frequency by a ÷ 440. In cents that is 1200 × log<sub>2</sub>(a ÷ 440). For 442: 1200 × log<sub>2</sub>(442 ÷ 440) ≈ <strong>7.9 cents</strong> higher.</p>
+    </section>
+
     <section aria-labelledby="ab-code">
       <h3 id="ab-code">Code: how it is drawn</h3>
       <ol class="kh-steps">
@@ -162,7 +184,8 @@
       <h3 id="ab-limit">What it can and can't do</h3>
       <ul class="kh-bullets">
         <li>The center shows a note name only for sounds with a clear pitch (voice, instruments, whistling). For chords it shows the strongest component.</li>
-        <li>Notes below C2 (about 65 Hz) or above C9 (about 8,400 Hz) are off the spiral and not drawn.</li>
+        <li>Notes below C2 (about 65 Hz) or above C9 (about 8,400 Hz) are off the spiral and not drawn (choosing another tonic shifts this range by up to half an octave).</li>
+        <li>Note names use the 12 semitones (24 with quarter tones on). Notes off that grid, such as just intonation, Indian shruti or gamelan scales, are shown as the nearest name plus how many cents away.</li>
         <li>Sound is only processed on this device. Nothing is recorded or sent.</li>
         <li>On iPhone, "Canon" and "Touch" may be silent when the ring/silent switch is set to silent.</li>
       </ul>
@@ -183,6 +206,7 @@
     <symbol id="ic-note" viewBox="0 0 24 24"><path d="M9 18.2V5.6l10-2v12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="6.6" cy="18.2" r="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16.6" cy="15.6" r="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
     <symbol id="ic-touch" viewBox="0 0 24 24"><path d="M10 20.5l-3.4-4.3a1.4 1.4 0 0 1 2.1-1.8l1.3 1.3V8.6a1.4 1.4 0 0 1 2.8 0v4.6l3.9.7c1.2.2 2 1.3 1.8 2.5l-.7 4.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.2 8.6a4.2 4.2 0 0 1 8.4 0M4.6 8.6a6.8 6.8 0 0 1 13.6 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
     <symbol id="ic-keep" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.8v.6M16.2 12h-.6M12 16.2v-.6M7.8 12h.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="ic-world" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.6 12h16.8M12 3.4c2.4 2.4 3.6 5.3 3.6 8.6s-1.2 6.2-3.6 8.6c-2.4-2.4-3.6-5.3-3.6-8.6s1.2-6.2 3.6-8.6Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
   </defs>
 </svg>
 <!-- HALO:BODY-END -->
