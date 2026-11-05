@@ -15,10 +15,10 @@ import { L } from './i18n.js';
  * 音の「写しとり係」（AudioWorklet）。ブラウザの音の係（オーディオスレッド）の中で動き、
  * 新しい 4096 サンプル（48 kHz で約 0.085 秒）を、約 0.08 秒ごとに画面の係へ送る。
  * requestAnimationFrame（画面の描きかえ）と違い、画面が消えている・別のアプリを見ているときも
- * 音が流れている限り動き続けるので、「聞き守り」を止めずにすむ（Android の Chrome など）。
+ * 音が流れている限り動き続ける（Android の Chrome など）。
  */
 const TAP_SOURCE = `
-class KannonTap extends AudioWorkletProcessor {
+class HaloTap extends AudioWorkletProcessor {
   constructor(options) {
     super();
     const o = (options && options.processorOptions) || {};
@@ -52,10 +52,10 @@ class KannonTap extends AudioWorkletProcessor {
     return true;
   }
 }
-registerProcessor('kannon-tap', KannonTap);
+registerProcessor('halo-tap', HaloTap);
 `;
 
-export class KannonAudioError extends Error {
+export class HaloAudioError extends Error {
   constructor(code, message) {
     super(message);
     this.code = code;
@@ -66,7 +66,7 @@ export class KannonAudioError extends Error {
 function micError(e) {
   const name = e && e.name;
   if (name === 'NotAllowedError' || name === 'SecurityError') {
-    return new KannonAudioError(
+    return new HaloAudioError(
       'denied',
       L(
         'マイクの使用が許可されませんでした。ブラウザの設定でこのページのマイクを「許可」にすると使えます。表示している場所によってはマイクが使えないこともあります。そのときは「ファイル」か「カノン」で試せます。',
@@ -75,15 +75,15 @@ function micError(e) {
     );
   }
   if (name === 'NotFoundError' || name === 'OverconstrainedError') {
-    return new KannonAudioError('nodevice', L('マイクが見つかりませんでした。マイクのある端末で開いてください。', 'No microphone was found. Open this page on a device with a microphone.'));
+    return new HaloAudioError('nodevice', L('マイクが見つかりませんでした。マイクのある端末で開いてください。', 'No microphone was found. Open this page on a device with a microphone.'));
   }
   if (name === 'NotReadableError' || name === 'AbortError') {
-    return new KannonAudioError(
+    return new HaloAudioError(
       'busy',
       L('マイクを別のアプリが使っているようです。通話や録音のアプリを閉じてから、もう一度試してください。', 'Another app seems to be using the microphone. Close call or recording apps and try again.'),
     );
   }
-  return new KannonAudioError('unknown', L(`マイクを開けませんでした（${name || '不明なエラー'}）。`, `Could not open the microphone (${name || 'unknown error'}).`));
+  return new HaloAudioError('unknown', L(`マイクを開けませんでした（${name || '不明なエラー'}）。`, `Could not open the microphone (${name || 'unknown error'}).`));
 }
 
 export class AudioEngine extends EventTarget {
@@ -100,7 +100,6 @@ export class AudioEngine extends EventTarget {
     this.bufferSource = null;
     this.wakeLock = null;
     this.keepAwake = true;
-    this.awakeHolds = new Set(); // 「画面を消さないで」と頼んでいる係（聞き守り・掌中眼）。設定にかかわらず画面を消さない
     this.input = null; // すべての音の入口（ここから観察窓と写しとり係に分かれる）
     this.tap = null;
     this.readyPromise = null;
@@ -130,21 +129,6 @@ export class AudioEngine extends EventTarget {
     return this.ctx ? this.ctx.currentTime : 0;
   }
 
-  /** 画面を消さないように頼んでいる係がいるか */
-  get forceAwake() {
-    return this.awakeHolds.size > 0;
-  }
-
-  /** key の係が「画面を消さないで」を頼む（on）・やめる。だれも頼んでいなければ、設定どおりにもどす */
-  holdAwake(key, on) {
-    if (on) {
-      this.awakeHolds.add(key);
-      this.requestWakeLock();
-    } else {
-      this.awakeHolds.delete(key);
-      if (!this.forceAwake && !(this.keepAwake && this.kind)) this.releaseWakeLock();
-    }
-  }
 
   /** マイクの音が OS に止められている（ほかのアプリが使っている など）。そのあいだは、無音のゼロしか届かない */
   get micMuted() {
@@ -160,7 +144,7 @@ export class AudioEngine extends EventTarget {
   async ensure() {
     if (!this.ctx) {
       const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) throw new KannonAudioError('unsupported', L('このブラウザは Web Audio API に対応していません。', 'This browser does not support the Web Audio API.'));
+      if (!AC) throw new HaloAudioError('unsupported', L('このブラウザは Web Audio API に対応していません。', 'This browser does not support the Web Audio API.'));
       this.ctx = new AC({ latencyHint: 'interactive' });
       this.input = this.ctx.createGain();
       this.analyser = this.ctx.createAnalyser();
@@ -190,7 +174,7 @@ export class AudioEngine extends EventTarget {
     try {
       url = URL.createObjectURL(new Blob([TAP_SOURCE], { type: 'text/javascript' }));
       await this.ctx.audioWorklet.addModule(url);
-      const node = new AudioWorkletNode(this.ctx, 'kannon-tap', {
+      const node = new AudioWorkletNode(this.ctx, 'halo-tap', {
         numberOfInputs: 1,
         numberOfOutputs: 1,
         outputChannelCount: [1],
@@ -219,10 +203,10 @@ export class AudioEngine extends EventTarget {
   /** マイクで観る */
   async startMic() {
     if (!window.isSecureContext) {
-      throw new KannonAudioError('insecure', L('マイクは https のページでしか使えません。', 'The microphone only works on https pages.'));
+      throw new HaloAudioError('insecure', L('マイクは https のページでしか使えません。', 'The microphone only works on https pages.'));
     }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      throw new KannonAudioError('unsupported', L('このブラウザはマイクの入力に対応していません。', 'This browser does not support microphone input.'));
+      throw new HaloAudioError('unsupported', L('このブラウザはマイクの入力に対応していません。', 'This browser does not support microphone input.'));
     }
     const ctxReady = this.ensure(); // ボタンを押した直後に音の部品を起こしておく
     let stream;
@@ -312,7 +296,7 @@ export class AudioEngine extends EventTarget {
     try {
       return await this.ctx.decodeAudioData(data);
     } catch {
-      throw new KannonAudioError('decode', L('この音声ファイルは読み込めませんでした。mp3・m4a・wav などの形式を試してください。', 'Could not read this audio file. Try mp3, m4a or wav.'));
+      throw new HaloAudioError('decode', L('この音声ファイルは読み込めませんでした。mp3・m4a・wav などの形式を試してください。', 'Could not read this audio file. Try mp3, m4a or wav.'));
     }
   }
 
@@ -366,7 +350,7 @@ export class AudioEngine extends EventTarget {
 
   /** 観測中は画面が消えないようにする（Screen Wake Lock API。使えない環境では何もしない） */
   async requestWakeLock() {
-    if (!(this.keepAwake || this.forceAwake) || !('wakeLock' in navigator) || this.wakeLock) return;
+    if (!this.keepAwake || !('wakeLock' in navigator) || this.wakeLock) return;
     try {
       this.wakeLock = await navigator.wakeLock.request('screen');
       this.wakeLock.addEventListener('release', () => {
@@ -384,73 +368,8 @@ export class AudioEngine extends EventTarget {
     }
   }
 
-  /** マイクの音を seconds 秒だけ録音する（「この音を残す」で録音を選んだとき） */
-  recordClip(seconds = 5) {
-    if (this.kind !== 'mic' || !this.stream) return Promise.reject(new KannonAudioError('norec', '録音はマイクで観ているときだけできます。'));
-    if (typeof MediaRecorder === 'undefined') return Promise.reject(new KannonAudioError('norec', 'このブラウザは録音に対応していません。'));
-    const types = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg;codecs=opus'];
-    const mimeType = types.find((t) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t));
-    return new Promise((resolve, reject) => {
-      let rec;
-      try {
-        rec = new MediaRecorder(this.stream, mimeType ? { mimeType } : undefined);
-      } catch (e) {
-        reject(new KannonAudioError('norec', '録音を始められませんでした。'));
-        return;
-      }
-      const chunks = [];
-      rec.ondataavailable = (e) => {
-        if (e.data && e.data.size) chunks.push(e.data);
-      };
-      rec.onstop = () => resolve(new Blob(chunks, { type: rec.mimeType || mimeType || 'audio/webm' }));
-      rec.onerror = () => reject(new KannonAudioError('norec', '録音中にエラーが起きました。'));
-      rec.start();
-      setTimeout(() => rec.state !== 'inactive' && rec.stop(), seconds * 1000);
-    });
-  }
-
   /**
-   * 学習用：作った音をスピーカーで1回だけ鳴らす（観察窓には流さない）。
-   * loop: true なら、stop() するまでくり返す（「SOSを出す」）。返り値の startedAt は、鳴り始めた音の係の時刻（秒）。
-   */
-  async playOneShot(samples, sampleRate, { volume = 0.8, loop = false } = {}) {
-    await this.ensure();
-    if (this.ctx.state !== 'running') await this.ctx.resume().catch(() => {});
-    const b = this.ctx.createBuffer(1, samples.length, sampleRate);
-    b.copyToChannel(samples, 0);
-    const src = this.ctx.createBufferSource();
-    const g = this.ctx.createGain();
-    g.gain.value = volume;
-    src.buffer = b;
-    src.loop = loop;
-    src.connect(g);
-    g.connect(this.output);
-    const startedAt = this.ctx.currentTime;
-    src.start(startedAt);
-    let ended = false;
-    const done = new Promise((resolve) => {
-      src.onended = () => {
-        ended = true;
-        g.disconnect();
-        resolve();
-      };
-    });
-    return {
-      done,
-      startedAt,
-      stop() {
-        if (ended) return;
-        try {
-          src.stop();
-        } catch {
-          /* すでに止まっている */
-        }
-      },
-    };
-  }
-
-  /**
-   * 学習用の音を鳴らす。parts = [{ freq, gain, type }]。返り値の stop() で止める。
+   * 音を鳴らす（指で鳴らす）。parts = [{ freq, gain, type }]。返り値の stop() で止める。
    * 急に鳴らしたり止めたりすると「プツッ」と鳴るので、音量をなめらかに上げ下げする。
    * observe: true なら観察窓にも流す（光背の「指で鳴らす」：鳴らした音が、そのまま絵に映る）。
    * release は止めるときに音を消していく秒数（指を離したあとの余韻）。

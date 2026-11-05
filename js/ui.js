@@ -38,24 +38,6 @@ export function icon(id, cls = 'btn-icon') {
   return svg;
 }
 
-/**
- * かんたんな飾り付き文章：**太字** と `コード` だけを要素に変える（それ以外は文字のまま）。
- */
-export function rich(text) {
-  const frag = document.createDocumentFragment();
-  const re = /(\*\*([^*]+)\*\*|`([^`]+)`)/g;
-  let last = 0;
-  let m;
-  while ((m = re.exec(text))) {
-    if (m.index > last) frag.append(text.slice(last, m.index));
-    if (m[2]) frag.append(h('strong', { text: m[2] }));
-    else frag.append(h('code', { class: 'inline-code', text: m[3] }));
-    last = m.index + m[0].length;
-  }
-  if (last < text.length) frag.append(text.slice(last));
-  return frag;
-}
-
 let toastTimer = 0;
 /** 画面の下に短いお知らせを出す */
 export function toast(message, ms = 2600) {
@@ -93,39 +75,6 @@ export function openDialog(dialog) {
   addLightDismissFallback(dialog);
   dialog.returnValue = '';
   if (!dialog.open) dialog.showModal();
-}
-
-/** 「本当に消しますか？」の確認。はい → true */
-export function confirmAction(text, okLabel = '消す') {
-  const dlg = $('#dlg-confirm');
-  $('#dlg-confirm-text').textContent = text;
-  $('#dlg-confirm-ok').textContent = okLabel;
-  return new Promise((resolve) => {
-    dlg.addEventListener(
-      'close',
-      () => {
-        const ok = dlg.returnValue === 'ok';
-        dlg.returnValue = '';
-        resolve(ok);
-      },
-      { once: true },
-    );
-    openDialog(dlg);
-  });
-}
-
-/** 文字をコピーする。できなければ、文字を選択状態にして手でコピーしてもらう */
-export async function copyText(text, selectEl) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    if (selectEl) {
-      selectEl.focus();
-      selectEl.select();
-    }
-    return false;
-  }
 }
 
 /** ファイルとして保存する。Claude の中では、Claude の「保存」機能を使う */

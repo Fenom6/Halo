@@ -2,7 +2,22 @@
   "name": "halo",
   "version": "1.1.0",
   "private": true,
-  "description": "光背 Halo — 音の高さを、光の輪で観る。12時がド・1周で1オクターブの螺旋に千本の光。マイク・指で鳴らす・パッヘルベルのカノン。",
+  "description": "光背 Halo — 音の高さを光の輪で表示する Web アプリ（チューナー・和音の図形・パッヘルベルのカノン）",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Fenom6/Halo.git"
+  },
+  "homepage": "https://github.com/Fenom6/Halo#readme",
+  "keywords": [
+    "pitch",
+    "tuner",
+    "web-audio",
+    "music",
+    "visualization",
+    "canon",
+    "pwa"
+  ],
   "type": "module",
   "scripts": {
     "test": "node --test \"tests/*.test.mjs\"",

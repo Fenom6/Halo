@@ -80,7 +80,7 @@ const BASS_PARTIALS = [1, 0.55, 0.3, 0.16];
 /**
  * 輪唱：パッヘルベル「カノン ニ長調」の冒頭（パブリックドメイン）。
  * 低音の 8 つの音がくり返す上で、3 つの声が 2 小節（8 拍）ずつ遅れて、同じ旋律を追いかける。
- * parts で鳴らす声部を選べる（「学ぶ」の道具で、声を 1 つずつ足して聞くため）。
+ * parts で鳴らす声部を選べる（声を 1 つずつ足して聞くため）。
  */
 export function canonRound({ sampleRate: sr = 48000, bpm = CANON_BPM, parts = { bass: true, voices: [true, true, true] } } = {}) {
   const spb = 60 / bpm; // 1 拍の秒数

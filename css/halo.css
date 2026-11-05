@@ -36,24 +36,8 @@
   --spec-4: #121a2a;
   --spec-mark: #c4472b; /* 朱色：音の高さの軌跡 */
 
-  /* 音の性格の色（色覚の多様性も含めて見分けやすいことを計算で確認済み。並び順も固定） */
-  --cat-voice: #d2603f;
-  --cat-impulse: #b4489a;
-  --cat-tonal: #b07d0c;
-  --cat-rumble: #4e5fc2;
-  --cat-hiss: #1f9c88;
-  --cat-silence: #a3aaa5;
-  --on-silence: #0b0b0b; /* 静寂の帯の中の文字 */
-
-  /* 状態の色（意味が決まっている。かならずアイコンと文字といっしょに使う） */
-  --good: #0ca30c;
+  /* 注意の色（音が届いていないときのしるし） */
   --warn: #c98500;
-  --crit: #d03b3b;
-
-  /* 知らせ（聞き守り）の画面：朱の地に白い文字。ゆっくり2つの色を行き来する（どちらも文字との差 5:1 以上） */
-  --alert-a: #a8241c;
-  --alert-b: #c4382b;
-  --alert-ink: #ffffff;
 
   --font-display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
   --font-body: "BIZ UDPGothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
@@ -107,19 +91,7 @@
     --spec-3: #b0b45e;
     --spec-4: #f6e7b8;
     --spec-mark: #ff8a65;
-    --cat-voice: #d9674a;
-    --cat-impulse: #c95fae;
-    --cat-tonal: #b28a2a;
-    --cat-rumble: #7584e0;
-    --cat-hiss: #24a08a;
-    --cat-silence: #5c625e;
-    --on-silence: #ffffff;
-    --good: #0ca30c;
     --warn: #fab219;
-    --crit: #e05656;
-    --alert-a: #6e1a14;
-    --alert-b: #93261d;
-    --alert-ink: #fff3ef;
     color-scheme: dark;
   }
 }
@@ -148,19 +120,7 @@
   --spec-3: #b0b45e;
   --spec-4: #f6e7b8;
   --spec-mark: #ff8a65;
-  --cat-voice: #d9674a;
-  --cat-impulse: #c95fae;
-  --cat-tonal: #b28a2a;
-  --cat-rumble: #7584e0;
-  --cat-hiss: #24a08a;
-  --cat-silence: #5c625e;
-  --on-silence: #ffffff;
-  --good: #0ca30c;
   --warn: #fab219;
-  --crit: #e05656;
-  --alert-a: #6e1a14;
-  --alert-b: #93261d;
-  --alert-ink: #fff3ef;
   color-scheme: dark;
 }
 
@@ -675,13 +635,6 @@ textarea {
 .btn-icon-only svg {
   width: 22px;
   height: 22px;
-}
-
-:root {
-  --sos-3: var(--crit);
-  --sos-2: var(--warn);
-  --sos-1: var(--accent);
-  --sos-0: var(--ink-3);
 }
 
 .check {

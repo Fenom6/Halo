@@ -1,72 +1,69 @@
 # 光背 Halo — 音の高さを、光の輪で観る
 
-スマホのマイクで、音の高さを **光の輪（光背）** に並べて観る Web アプリです。
-仏さまの後ろにある光の輪を「光背（こうはい）」、英語で **halo（ヘイロー）** といいます。
+[English](#english) ・ [デモの開き方](#使い方) ・ [ライセンス](#ライセンス)
 
-- **12時がド**。時計回りに半音ずつ進み、**1周で1オクターブ**高くなる螺旋（内側ほど低い音）
-- 螺旋から外へ伸びる **千本の光** の長さと色が、その高さの音の強さ
-- 1オクターブ違いの同じ音は同じ向きにそろうので、**和音や倍音が「形」として見える**
-- サンプルは **パッヘルベルの「カノン ニ長調」**。3つの光が、3つの声の追いかけっこを描きます
+**光背 Halo** は、マイクで拾った音の高さを「光の輪」に並べて表示する Web アプリです。インストールや会員登録は不要で、スマートフォンのブラウザでそのまま動きます。
 
-| マイクで歌う（ラ A4） | 指でドミソを鳴らす（暗い表示） | 「残す」で作った絵 | 英語版（黒い地） |
+仏像の後ろにある光の輪を「光背（こうはい）」、英語で halo（ヘイロー）と呼びます。このアプリでは、その光の輪の上に音の高さを並べます。
+
+| マイクで歌った音（ラ A4） | 指で和音（ドミソ）を鳴らす | 保存した画像 | 英語版（黒背景） |
 | --- | --- | --- | --- |
-| ![ラの音で、まん中に「ラ」、9時の向きに光、下にチューナー](docs/images/halo-mic.jpg) | ![指でドミソを鳴らすと、12時・4時・7時に光が伸びる](docs/images/halo-touch.jpg) | ![カノンの3つの声がそろって蓮が開いた絵](docs/images/halo-saved.jpg) | ![英語版。黒い地に、マイクで A4。9 o'clock・ring 3](docs/images/halo-english.jpg) |
+| ![ラの音を入力した画面。中央に「ラ」、9時の方向に光、下にチューナー](docs/images/halo-mic.jpg) | ![ドミソを鳴らすと、12時・4時・7時の方向に光が伸びる](docs/images/halo-touch.jpg) | ![カノンの3声がそろい、蓮の模様が開いた保存画像](docs/images/halo-saved.jpg) | ![英語版の画面。黒い背景で A4 を表示](docs/images/halo-english.jpg) |
 
-## できること
+## 特長
 
-| できること | しくみ |
+- **時計の文字盤と同じ配置**：12時がド（C）、時計回りに半音ずつ進みます。12の音名が12の時刻にちょうど重なります
+- **1周で1オクターブ**：螺旋の内側ほど低く、外側ほど高い音です。1オクターブ違いの同じ音名は同じ方向にそろうため、**和音や倍音が図形として見えます**
+- **千本の光**：螺旋から外へ伸びる光の長さと色が、その高さの音の強さを表します
+- **チューナー**：音名・周波数（Hz）・セント（半音の 1/100）を表示します。歌や楽器の音程の確認に使えます
+- **サンプル：パッヘルベル「カノン ニ長調」**：楽譜から音をその場で合成します（録音ではありません）。低音・第1〜3声を選んで鳴らせるので、3つの声が同じ旋律を2小節ずつ遅れて追いかける「カノン」の構造を、光の動きで確かめられます
+- **指で鳴らす**：螺旋に触れると、最も近い半音の音が倍音つきで鳴り、そのまま光の輪に表示されます。複数の指で和音を鳴らせます（最大4音）
+- **画像として保存**：表示中の光の輪を、音名と日時入りの PNG 画像として保存・共有できます
+- **英語版**：`en.html` は英語表示・黒背景の版です。画面右上で日本語版と切り替えられます
+- **オフライン対応**：ホーム画面に追加でき、一度開けば通信がない場所でも使えます
+- **解説つき**：画面右上の「i」から、見方・物理・数学・音楽・英語・コードの解説を読めます
+
+## 使い方
+
+1. 公開されたページ（`index.html`、英語版は `en.html`）をブラウザで開きます
+2. 「マイクで観る」を押し、マイクの使用を許可します
+3. 声を出したり楽器を鳴らしたりすると、光の輪に高さが表示されます
+
+マイクを使うには、ページが **https** で配信されている必要があります（ブラウザの仕様）。iPhone ではマナーモード（消音スイッチ）のとき、「カノン」と「指で鳴らす」の音が出ないことがあります。
+
+### ホーム画面に追加する
+
+- iPhone：Safari の共有ボタン →「ホーム画面に追加」
+- Android：Chrome のメニュー →「ホーム画面に追加」または「アプリをインストール」
+
+## しくみ（概要）
+
+| 分野 | 内容 |
 | --- | --- |
-| **画面いっぱいの光背** | スマホを縦に持つと画面の幅いっぱい、横に持つと左に光背・右に操作 |
-| **マイクで観る** | まん中に音名、下に Hz・セント（半音の 1/100）・「9時の向き・3周目」。歌の音程の練習に |
-| **カノン** | パッヘルベル「カノン ニ長調」の始まりを、楽譜からその場で計算して鳴らす（録音ではない）。低音・第1〜3声を選べるので、声を1つずつ足して聞ける。3つの光が3つの声を、金の輪が低音を追い、3つの声がそろうと蓮が開く |
-| **指で鳴らす** | 螺旋に触れると、いちばん近い半音の音が倍音つきで鳴り、その音がそのまま光背に映る。ドを1つ鳴らすと、3倍の音はソ（7時）、5倍の音はミ（4時）の向きに光る。何本かの指で和音（4本まで） |
-| **ファイル** | スマホで録音した音なども観られる |
-| **残す** | いまの光背を、音名と日時つきの1枚の絵（PNG）に。スマホでは共有の画面から写真に保存・送信 |
-| **しくみ** | 見方・物理・数学・音楽（カノン）・英語・コードの解説を、アプリの中で読める |
-| **ホーム画面・オフライン** | ホーム画面に「光背」として置ける。一度開けば、電波がない所でも開ける |
-| **英語版** | [`en.html`](en.html)：英語で、いつも黒い地（端末が明るい表示でも）。音名は C D E、向きは「9 o'clock」。しくみの解説も英語（日本語のことばの説明つき）。ホーム画面には「Halo」として置ける。右上の「English」「日本語」で行き来できる |
-| **ひみつ** | マイクに向かってカノンの低音か旋律の始まりを歌う（指で弾く）と…… |
-
-音が届かなくなったとき（電話・別のアプリ・マイクが止められた）は「音が届いていません」と出し、古い高さと光を出し続けません。
-
-## やさしい説明
-
-- **物理**：音は空気のふるえ。1秒に何回ふるえるかが周波数（Hz）。ラは 440 回で、2倍の 880 回も「ラ」に聞こえる（1オクターブ上）。だから同じ向きに並べる
-- **数学**：周回 ＝ log₂(f ÷ 65.4)。65.4 Hz はいちばん内側のド。f が2倍になると周回がちょうど1増える。ラ 440 Hz は 2.75 周 → 3周目の9時
-- **音楽**：カノンは「同じ旋律を、少し遅れてもう一人が歌う」音楽。式で書くと y(t) ＝ x(t) ＋ x(t − T) ＋ x(t − 2T)（x が旋律、T が遅れ。パッヘルベルでは2小節）
-- **英語版の作り方（コード）**：画面の文字は `L('日本語', 'English')` と両方を並べて書き、ページの `<html lang="…">` でどちらを出すかを決める（`js/i18n.js`）。だから日本語版と英語版は、同じ JavaScript で動く
-- **英語**：halo＝光の輪、spiral＝螺旋、pitch＝音の高さ、octave＝ラテン語の「8番目」、harmonic＝倍音、canon＝ギリシャ語の「物差し・決まり」
-- **コード**：観察窓（Web Audio API の AnalyserNode）が FFT（音を高さごとに分ける計算）で 8,192 個の区分に分け、千本の光それぞれが受け持つ区分を表にしておき、1秒に約60回描く
-
-## スマホで使う
-
-1. 公開した URL をスマホのブラウザで開く（下の「公開のしかた」。英語版は `/en.html`）
-2. 「マイクで観る」を押して、マイクを許可する
-3. ホーム画面に追加すると、アプリのように使え、電波がない所でも開ける
-   - iPhone：Safari の共有ボタン →「ホーム画面に追加」
-   - Android：Chrome のメニュー →「ホーム画面に追加」または「アプリをインストール」
-
-マイクを使うには **https** のページである必要があります（ブラウザの決まり）。iPhone は消音スイッチがオンだと、「カノン」「指で鳴らす」の音が鳴らないことがあります。
-
-## 公開のしかた
-
-ビルドは要りません。ファイルをそのまま置くだけで動きます。
-
-| 方法 | メモ |
-| --- | --- |
-| **GitHub Pages** | Settings → Pages → Source を「GitHub Actions」にして、Actions の「Deploy to GitHub Pages」を手動で実行（無料プランではリポジトリを公開にする必要あり） |
-| **Vercel・Cloudflare など** | リポジトリをつなぐだけ（静的なファイルとして配る。ビルドの命令はなし） |
-| **claude.ai のアーティファクト** | `npm run build:artifact` で作る1ファイル版（`dist/halo-artifact.html`）。マイクは使えないが、カノン・指で鳴らす・残す は使える |
+| 物理 | 音は空気の振動です。1秒あたりの振動回数が周波数（Hz）で、2倍の周波数は1オクターブ上の同じ音名に聞こえます |
+| 数学 | 螺旋上の位置は「周回 ＝ log₂(f ÷ 65.4)」で決まります。整数部分が何周目か、小数部分が方向です。例：ラ 440 Hz は 2.75 周（3周目の9時の方向） |
+| 音楽 | カノンは同じ旋律を一定の遅れで重ねる形式です。y(t) ＝ x(t) ＋ x(t − T) ＋ x(t − 2T)（x：旋律、T：遅れ） |
+| コード | Web Audio API の AnalyserNode で音を 8,192 個の周波数区分に分け（FFT）、1,000 本の光それぞれが受け持つ区分をあらかじめ表にして、毎秒約60回描画します。音の高さは YIN 法で求めます |
 
 ## プライバシー
 
-- マイクの音は端末の中で計算するだけで、録音も送信もしません
-- 「残す」は絵（PNG）をこの端末で作り、共有するか保存するかは押した人が選びます
-- 設定（表示の明るさ）は、この端末のブラウザ（localStorage）にだけ保存します
+- マイクの音は端末内でのみ処理され、録音・送信は行いません
+- 画像の保存は、利用者が「残す」を押したときだけ端末内で行います
+- 表示設定は、この端末のブラウザ（localStorage）にのみ保存されます
+- 外部への通信は、文字（Google Fonts）の読み込みのみです
+
+## 公開のしかた
+
+ビルド不要の静的サイトです。リポジトリのファイルをそのまま配信すれば動作します。
+
+| 方法 | 手順 |
+| --- | --- |
+| GitHub Pages | Settings → Pages → Source を「GitHub Actions」にし、Actions の「Deploy to GitHub Pages」を実行します |
+| その他の静的ホスティング | `index.html`・`en.html`・`manifest*.webmanifest`・`sw.js`・`css/`・`js/`・`icons/` を配置します |
 
 ## 開発
 
-必要なのは **Node.js 20 以上**だけです（依存パッケージなし・ビルド不要）。
+Node.js 20 以上が必要です（依存パッケージなし）。
 
 ```bash
 npm test
@@ -78,41 +75,64 @@ npm run serve
 
 | コマンド | 内容 |
 | --- | --- |
-| `npm test` | 螺旋の式・カノンの楽譜と聞き分け・高さの決め方・オフライン用の係・ページの説明の数字のテスト |
-| `npm run check` | 全ファイルの文法と、オフライン用の一覧（sw.js）の点検 |
-| `npm run serve` | 手元で開く（http://localhost:8080/ 。パソコンならマイクも試せる） |
-| `npm run e2e` | 本物のブラウザで通しテスト。440 Hz で「ラ」と9時の向き、指で鳴らす（旋律を弾くと蓮）、カノン（3つの声で蓮、1つの声では開かない）、残す、横向き、オフライン、1ファイル版（Playwright が必要） |
-| `npm run build:artifact` | claude.ai 用の1ファイル版を `dist/` に作る |
-| `npm run icons` | 光背と同じ螺旋の式でアイコンを描き直す（`tools/icon.mjs`） |
+| `npm test` | 単体テスト（螺旋の計算、楽譜と旋律の判定、音の高さの判定、オフライン処理、ページ内の数値と実装の一致） |
+| `npm run check` | 全ファイルの構文と、オフライン用ファイル一覧（`sw.js`）の点検 |
+| `npm run serve` | ローカルサーバー（http://localhost:8080/） |
+| `npm run e2e` | ブラウザ（Chromium）による画面の通しテスト。Playwright が必要です |
+| `npm run build:artifact` | 1ファイル版（`dist/halo-artifact.html`）の生成 |
+| `npm run icons` | アイコンの再生成（`tools/icon.mjs`） |
 
-E2E テストを手元で動かすとき：
+画面テストを実行するには、先に Playwright を入れます。
 
 ```bash
 npm i --no-save playwright && npx playwright install chromium
 ```
 
-### フォルダ
+### ファイル構成
 
 ```
-index.html            画面（しくみの解説も、この中）
-en.html               英語版の画面（黒い地）
-manifest.webmanifest  ホーム画面に追加するときの説明書き（manifest-en.webmanifest は英語版）
-sw.js                 オフライン対応
-css/halo.css          見た目（色・文字の決まりは先頭の :root）
-js/main.js            このアプリの係（音の入口・指で鳴らす・チューナー・カノン・残す）
-js/kouhai-stage.js    光背の部品（絵・音名・頭光・蓮・追いかける光・歌の聞き分け）
-js/kouhai.js          光背の絵（螺旋の式・千本の光・絵を残す）
-js/canon.js           パッヘルベルのカノン：楽譜のデータ・各声部の音・歌われた旋律の聞き分け
-js/synth.js           カノンの合成（はじいた弦のような音）
-js/pitch.js           いまの音の高さを1つに決める
-js/features.js, classify.js, dsp.js   音を数字にする計算（FFT・YIN 法・倍音・音の性格）
-js/audio.js           マイク・ファイル・合成音の入口（Web Audio API・AudioWorklet）
-js/i18n.js            ことばの切り替え（日本語 ⇄ English）
-js/ui.js, claude.js, prefs.js, format.js, colormap.js   画面の道具・設定・色
+index.html            日本語版の画面（解説を含む）
+en.html               英語版の画面（黒背景）
+manifest*.webmanifest ホーム画面に追加するための設定
+sw.js                 オフライン対応（Service Worker）
+css/halo.css          スタイル（色と文字の設定は先頭の :root）
+js/main.js            画面の制御（入力・指で鳴らす・チューナー・カノン・保存）
+js/kouhai-stage.js    光の輪の部品（描画・音名・蓮・追いかける光・旋律の判定）
+js/kouhai.js          光の輪の描画（螺旋の計算・光・画像の書き出し）
+js/canon.js           カノンの楽譜・各声部・旋律の判定
+js/synth.js           カノンの音の合成
+js/pitch.js           音の高さの決定
+js/features.js, classify.js, dsp.js   信号処理（FFT・YIN 法・倍音・音の分類）
+js/audio.js           音の入出力（Web Audio API・AudioWorklet）
+js/i18n.js            日本語・英語の切り替え
+js/ui.js, claude.js, prefs.js, format.js, colormap.js   画面部品・設定・書式・配色
 tests/                テスト（tests/e2e は画面の通しテスト）
-tools/                開発用の道具（サーバー・点検・アイコン・1ファイル化）
+tools/                開発用ツール（サーバー・点検・アイコン・1ファイル化）
 ```
 
-## もとになったもの
+## ライセンス
 
-光背は、音を観るアプリ「観音 Kannon」の見方のひとつとして生まれ、ここで単体のアプリとして独立させました（このリポジトリだけで動き、観音のコードには依存しません）。
+[MIT License](LICENSE)
+
+- 楽曲：ヨハン・パッヘルベル「カノン ニ長調」（パブリックドメイン）。音はアプリ内で楽譜から合成しています
+- 文字：Shippori Mincho B1・BIZ UDPGothic・M PLUS 1 Code（Google Fonts、SIL Open Font License）
+
+---
+
+## English
+
+**Halo** is a web app that shows the pitch of sound as a ring of light. No install or sign-up: it runs in a phone's browser. Open `en.html` for the English version (black background).
+
+- **Laid out like a clock face**: C is at 12 o'clock, and each step clockwise is a semitone, so the twelve note names fall on the twelve hours
+- **One octave per turn**: low notes are inside the spiral, high notes outside. Notes an octave apart point the same way, so **chords and harmonics appear as shapes**
+- **A thousand rays**: the length and color of each ray shows how strong that pitch is
+- **Tuner**: note name, frequency (Hz) and cents (1/100 of a semitone)
+- **Sample: Pachelbel's Canon in D**, synthesized from the score on the spot. Choose the bass and voices 1–3 to see three voices chase the same melody two bars apart
+- **Play by touch**: touch the spiral to play the nearest semitone (with harmonics); up to four fingers for chords
+- **Save as image**, **works offline**, **add to home screen**, and built-in explanations (reading the ring, physics, math, music, code)
+
+The microphone needs the page to be served over **https**. Sound is processed on the device only; nothing is recorded or sent.
+
+Development: Node.js 20+, no dependencies. `npm test` runs the unit tests, `npm run serve` starts a local server, `npm run e2e` runs browser tests (needs Playwright).
+
+License: [MIT](LICENSE). Music: Johann Pachelbel, Canon in D (public domain), synthesized in the app. Fonts: Google Fonts (SIL Open Font License).

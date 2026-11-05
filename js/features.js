@@ -50,7 +50,7 @@ export function thirdOctaveBands(power, binHz) {
  *   crest:number, zcr:number, bands:number[], power:Float64Array, binHz:number
  * }}
  * power と binHz は、計算に使ったパワースペクトルそのもの（power[k] が k × binHz [Hz] の成分）。
- * 掌中眼（eye.js）が「探す音の高さのところだけ」を測るのに使う。保存はしない（大きいので）。
+ * 保存はしない（大きいので）。
  */
 export function computeFeatures(block, sampleRate, { pitchSize = Math.round((2048 * Math.max(48000, sampleRate)) / 48000) } = {}) {
   const n = largestPow2(block.length);

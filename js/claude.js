@@ -26,30 +26,3 @@ export function capability(name) {
   }
   return cache.get(name);
 }
-
-/** Claude への質問がうまくいかなかったときの説明 */
-export function sampleErrorText(code) {
-  switch (code) {
-    case 'not_granted':
-    case 'sampling_disabled':
-    case 'not_declared':
-    case 'capability_disabled':
-    case 'capability_removed':
-      return 'この画面からは Claude に質問できない設定になっています。';
-    case 'rate_limited':
-      return '質問が続いたため、少し時間をおいてからもう一度試してください。';
-    case 'session_expired':
-      return 'ログインの期限が切れました。Claude にもう一度ログインしてください。';
-    case 'images_unavailable':
-    case 'image_rejected':
-      return '絵を送れなかったので、数字だけで聞き直してください。';
-    case 'refused':
-      return 'この内容には答えられませんでした。聞き方を変えてみてください。';
-    case 'prompt_too_large':
-      return '送る内容が長すぎました。';
-    case 'cancelled':
-      return '';
-    default:
-      return 'うまく答えを受け取れませんでした。もう一度「聞く」を押してください。';
-  }
-}

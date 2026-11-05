@@ -13,19 +13,6 @@
  *  - dBFS: デジタルの最大値（Full Scale）を基準にした大きさ。0 が上限で、小さい音ほどマイナス。
  */
 
-/** 20℃の空気中の音の速さ [m/s] */
-export const SPEED_OF_SOUND = 343;
-
-/** 気温 t [℃] のときの音の速さ。暖かいほど空気の分子が元気に動くので、少し速くなる。 */
-export function speedOfSound(tempC) {
-  return 331.5 + 0.61 * tempC;
-}
-
-/** 波長 λ = v / f （1回ぶんの波の長さ [m]） */
-export function wavelength(freq, speed = SPEED_OF_SOUND) {
-  return freq > 0 ? speed / freq : Infinity;
-}
-
 /** 値を [lo, hi] の範囲に収める */
 export function clamp(x, lo, hi) {
   return x < lo ? lo : x > hi ? hi : x;
@@ -74,38 +61,6 @@ export function dbToAmp(db) {
 export function powerToDb(power) {
   if (!(power > 0)) return DB_FLOOR;
   return Math.max(DB_FLOOR, 10 * Math.log10(power));
-}
-
-/**
- * 等価騒音レベル Leq：いくつかの dB の値を「エネルギーで」平均する。
- * dB は対数なので、そのまま足して割ると小さめに出てしまう。いったんエネルギーに戻して平均する。
- */
-export function leq(levels) {
-  let s = 0;
-  let n = 0;
-  for (const l of levels) {
-    if (Number.isFinite(l)) {
-      s += Math.pow(10, l / 10);
-      n++;
-    }
-  }
-  return n ? 10 * Math.log10(s / n) : DB_FLOOR;
-}
-
-/** 百分位（percentile）。p=90 なら「90% の時間はこれより大きかった」値＝L90（背景の音の目安）。 */
-export function exceedanceLevel(levels, p) {
-  const v = levels.filter(Number.isFinite).sort((a, b) => b - a);
-  if (!v.length) return DB_FLOOR;
-  const idx = clamp(Math.round((p / 100) * (v.length - 1)), 0, v.length - 1);
-  return v[idx];
-}
-
-/**
- * 耳を守る目安：この大きさ [dB(A)] なら1日に何時間まで大丈夫か。
- * NIOSH（米国労働安全衛生研究所）の基準：85 dB で 8 時間、3 dB 上がるごとに半分。
- */
-export function safeExposureHours(dbA) {
-  return 8 / Math.pow(2, (dbA - 85) / 3);
 }
 
 // ---------------------------------------------------------------------------
@@ -563,23 +518,3 @@ export function noteInfo(freq, a4 = 440) {
 // ---------------------------------------------------------------------------
 // そのほかの物理の公式
 // ---------------------------------------------------------------------------
-
-/**
- * ドップラー効果：近づく音源は高く、遠ざかる音源は低く聞こえる。
- * vSource … 音源が「こちらへ近づく」速さ [m/s]（遠ざかるときはマイナス）
- * vObserver … 聞く人が「音源へ近づく」速さ [m/s]
- * f' = f × (c + vObserver) / (c − vSource)
- */
-export function dopplerShift(freq, vSource, vObserver = 0, c = SPEED_OF_SOUND) {
-  return (freq * (c + vObserver)) / (c - vSource);
-}
-
-/** うなり：近い2つの高さを同時に鳴らすと、差の回数だけ1秒に強弱がくり返す */
-export function beatFrequency(f1, f2) {
-  return Math.abs(f1 - f2);
-}
-
-/** 雷が光ってから音が届くまでの秒数 → 距離 [m] */
-export function thunderDistance(seconds, tempC = 20) {
-  return seconds * speedOfSound(tempC);
-}

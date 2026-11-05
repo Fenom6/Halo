@@ -14,16 +14,9 @@ import {
   noteInfo,
   freqToMidi,
   midiToFreq,
-  leq,
-  exceedanceLevel,
-  safeExposureHours,
   spectralCentroid,
   bandFlatness,
   peakFrequency,
-  wavelength,
-  dopplerShift,
-  speedOfSound,
-  beatFrequency,
   analyserLikeDb,
 } from '../js/dsp.js';
 
@@ -135,18 +128,6 @@ test('音名：440 Hz はラ（A4）、261.63 Hz はド（C4）、セントの�
   assert.equal(noteInfo(0), null);
 });
 
-test('Leq はエネルギーで平均する（60 dB と 70 dB の平均は 65 ではなく約 67.4）', () => {
-  near(leq([60, 70]), 67.4, 0.05);
-  near(leq([50, 50, 50]), 50, 1e-9);
-  assert.equal(exceedanceLevel([30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130], 90), 40);
-});
-
-test('耳を守る目安：85 dB で 8 時間、88 dB で 4 時間、100 dB で 15 分', () => {
-  near(safeExposureHours(85), 8, 1e-9);
-  near(safeExposureHours(88), 4, 1e-9);
-  near(safeExposureHours(100) * 60, 15, 1e-9);
-});
-
 test('スペクトルの特徴：重心・平坦度・ピーク', () => {
   const n = 4096;
   const binHz = SR / n;
@@ -163,14 +144,6 @@ test('AnalyserNode と同じ方式の dB：振幅1のサイン波のピークは
   const f = (100 * SR) / n; // ちょうどビン100に乗る周波数
   const db = analyserLikeDb(sine(f, n / SR, 1), n);
   near(db[100], 20 * Math.log10(0.21), 0.1);
-});
-
-test('物理の公式：波長・音速・ドップラー・うなり', () => {
-  near(wavelength(440), 0.7795, 1e-3, '440 Hz の波長');
-  near(speedOfSound(20), 343.7, 0.1, '20℃の音速');
-  near(dopplerShift(960, 50 / 3.6), 1000.5, 0.5, '時速50kmで近づく救急車');
-  near(dopplerShift(960, -50 / 3.6), 922.6, 0.5, '時速50kmで遠ざかる救急車');
-  assert.equal(beatFrequency(440, 443), 3);
 });
 
 test('倍音のそろい具合：整数倍の音は高く、鐘のような整数倍でない音は低い', async () => {

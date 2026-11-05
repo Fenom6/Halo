@@ -10,7 +10,7 @@ import { spawn } from 'node:child_process';
 
 test('空白や日本語の入ったフォルダからでも、node tools/serve.mjs でサーバーが起動する', async () => {
   const base = await mkdtemp(join(tmpdir(), 'kannon serve '));
-  const dir = join(base, '観音 テスト');
+  const dir = join(base, '光背 テスト');
   await mkdir(join(dir, 'tools'), { recursive: true });
   await copyFile(new URL('../tools/serve.mjs', import.meta.url), join(dir, 'tools', 'serve.mjs'));
   await writeFile(join(dir, 'index.html'), '<!doctype html><title>t</title><p>ok</p>');

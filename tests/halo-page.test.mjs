@@ -133,7 +133,7 @@ test('ホーム画面に置ける：光背 Halo の説明書き（マニフェ�
   for (const s of ['192x192', '512x512', '512x512:maskable']) assert.ok(sizes.includes(s), `アイコン ${s}`);
   assert.match(html, /<link rel="manifest" href="manifest\.webmanifest">/);
   assert.match(html, /<script type="module" src="js\/main\.js"><\/script>/);
-  assert.ok(!/観音|Kannon/.test(html), '観音のアプリへの言及が残っている（Halo は単体）');
+  assert.ok(!/観音|Kannon/.test(html), '別のアプリの名前が残っている（Halo は単体のアプリ）');
 });
 
 test('英語版（en.html）：黒い地・英語・同じ部品。日本語版とたがいに行き来できる', async () => {
