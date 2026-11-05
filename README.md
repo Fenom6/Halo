@@ -32,6 +32,10 @@
 - **画像として保存**：表示中の光の輪を、音名と日時入りの PNG 画像として保存・共有できます
 - **録画**：光の動きを、最長 30 秒の動画（iPhone は MP4、Android・パソコンは WebM）にして保存・共有できます。カノン・指で鳴らす・ファイルの音は動画に入ります。マイクの音は入れません
 - **すばやい光**：高い音（約 400 Hz より上）の光は、短い時間だけを見るもう1つの観察窓で描くので、以前の4倍速く動きます。低い音は細かい観察窓のまま（和音の形がくっきり）
+- **見た目**：光背の下のパレットの印から選べます（端末に保存）
+  - 光の色：金・朱・青・紫・虹。虹は音名ごとに色が決まり（12時の主音が赤）、和音が色の組み合わせとして見えます
+  - 追いかける光の軌跡：短い（約 0.4 秒）・ふつう（約 1.2 秒）・長い（約 3 秒）
+  - 画面の明るさ：そのまま・少し暗く・暗く（保存する絵と動画は暗くなりません）
 - **黒い背景**：日本語版・英語版とも、端末の設定にかかわらず黒い背景で表示します（光が金色に輝きます）
 - **英語版**：`en.html` は英語表示の版です。画面右上で日本語版と切り替えられます
 - **オフライン対応**：ホーム画面に追加でき、一度開けば通信がない場所でも使えます
@@ -121,6 +125,7 @@ js/features.js, classify.js, dsp.js   信号処理（FFT・YIN 法・倍音・�
 js/audio.js           音の入出力（Web Audio API・AudioWorklet・細かい観察窓と速い観察窓）
 js/recorder.js        録画（canvas の映像と、スピーカーの音を動画に）
 js/i18n.js            日本語・英語の切り替え
+js/look.js, look-ui.js  見た目（光の色・軌跡の長さ・明るさ）の決まりと設定の画面
 js/tuning.js          世界の音楽に合わせる決まり（基準の高さ・音名の表し方・主音・四分音）
 js/tuning-ui.js       その設定の画面
 js/ui.js, claude.js, prefs.js, format.js, colormap.js   画面部品・設定・書式・配色
@@ -149,6 +154,7 @@ tools/                開発用ツール（サーバー・点検・アイコン�
 - **Sample: Pachelbel's Canon in D**, synthesized from the score on the spot. Choose the bass and voices 1–3 to see three voices chase the same melody two bars apart
 - **Play by touch**: touch the spiral to play the nearest semitone (with harmonics); up to four fingers for chords. Optional 13-key keyboard under the halo, and a glide mode (portamento) that follows your finger without snapping
 - **Fast rays**: high notes (above about 400 Hz) are drawn from a second, short analyser, so they move four times faster; low notes keep the fine analyser for crisp chord shapes
+- **Look** (palette button under the halo): light color in gold, vermilion, blue, purple or rainbow (rainbow colors each note name, so chords show as color sets); trail length (0.4 / 1.2 / 3 s); screen brightness (normal / a little darker / darker)
 - **Record**: save the moving halo as a video of up to 30 s (MP4 on iPhone, WebM elsewhere). Canon, touch and file sound go in; the microphone never does
 - **Save as image**, **works offline**, **add to home screen**, and built-in explanations (reading the ring, physics, math, music, code)
 

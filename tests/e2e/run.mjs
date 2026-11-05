@@ -387,6 +387,59 @@ try {
     expect((await page.locator('#kouhai-dial .kouhai-pc').first().innerText()) === 'ド', '戻したあと、12時がドでない');
   });
 
+  await check('見た目：光の色（青・虹）・軌跡の長さ・画面の明るさを選べ、すぐ光背に映る。開き直しても覚えている', async () => {
+    // 光背の絵の、色の分かれ方：青みの強い画素の数と、色相（12区分）が何種類あるか
+    const colors = () =>
+      page.evaluate(() => {
+        const c = document.querySelector('#cv-kouhai');
+        const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+        let blue = 0;
+        const hues = new Map();
+        for (let i = 0; i < d.length; i += 16) {
+          const [r, g, b] = [d[i], d[i + 1], d[i + 2]];
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          if (max - min < 60 || max < 90) continue; // 灰色・暗い所（目盛り・地）は数えない
+          if (b > r + 40 && b >= g) blue++;
+          let h = max === r ? (g - b) / (max - min) : max === g ? 2 + (b - r) / (max - min) : 4 + (r - g) / (max - min);
+          h = Math.floor((((h * 60) % 360) + 360) % 360 / 30);
+          hues.set(h, (hues.get(h) || 0) + 1);
+        }
+        return { blue, hues: [...hues.values()].filter((n) => n > 15).length };
+      });
+    const before = await colors();
+    await page.click('#btn-look');
+    await page.waitForSelector('#dlg-look[open]');
+    expect((await page.locator('#dlg-look input[name="look-hue"]').count()) === 5, '光の色が5つない');
+    await page.click('#dlg-look input[name="look-hue"][value="ao"]', { force: true });
+    await page.waitForTimeout(300);
+    const ao = await colors();
+    expect(ao.blue > before.blue + 100, `青にしても青くならない（前 ${before.blue}・後 ${ao.blue}）`);
+    expect((await page.getAttribute('html', 'data-hue')) === 'ao', 'ページに青の印がない');
+    await page.click('#dlg-look input[name="look-hue"][value="niji"]', { force: true });
+    await page.waitForTimeout(300);
+    const niji = await colors();
+    expect(niji.hues >= 3, `虹で、和音（レ・ファ♯・ラ）が色の組み合わせにならない（${niji.hues} 色）`);
+    await shot('k08d-look-niji');
+    await page.click('#dlg-look input[name="look-trail"][value="long"]', { force: true });
+    await page.click('#dlg-look input[name="look-dim"][value="0.55"]', { force: true });
+    const veil = await page.evaluate(() => getComputedStyle(document.body, '::after').opacity);
+    expect(Math.abs(Number(veil) - 0.55) < 0.01, `暗くする幕の濃さが ${veil}`);
+    await page.keyboard.press('Escape');
+    await page.reload();
+    await page.waitForFunction(() => document.querySelector('#kh-hz').textContent.includes('例'), null, { timeout: 10000 });
+    expect((await page.getAttribute('html', 'data-hue')) === 'niji', '開き直すと光の色を忘れている');
+    expect((await page.getAttribute('html', 'data-dim')) === '0.55', '開き直すと明るさを忘れている');
+    expect((await colors()).hues >= 3, '開き直すと虹で描かれない');
+    await page.click('#btn-look');
+    await page.waitForSelector('#dlg-look[open]');
+    expect(await page.isChecked('#dlg-look input[name="look-trail"][value="long"]'), '軌跡の長さを忘れている');
+    await page.click('#dlg-look .tn-reset');
+    await page.keyboard.press('Escape');
+    expect((await page.getAttribute('html', 'data-hue')) === 'kin', '戻しても金にならない');
+    expect((await page.getAttribute('html', 'data-dim')) === null, '戻しても暗いまま');
+  });
+
   await check('日本語版も、端末が明るい表示でも黒い地（光背の地も、ページの地も、まっ黒）。表示の切り替えはない', async () => {
     expect((await page.locator('input[name="kh-theme"]').count()) === 0, '表示の明るさの切り替えが残っている');
     const bg = await page.evaluate(() => {

@@ -1260,3 +1260,81 @@ dialog::backdrop {
   color: var(--ink-3);
   text-align: center;
 }
+
+/* ---------- 見た目：光の色のテーマ（金ははじめの色なので、ここには書かない）。虹は js/look.js が描く ---------- */
+:root[data-hue="shu"] {
+  --spec-1: #3a1410;
+  --spec-2: #8c2f1e;
+  --spec-3: #e0663c;
+  --spec-4: #ffd9b8;
+}
+:root[data-hue="ao"] {
+  --spec-1: #0a1f3a;
+  --spec-2: #1f5fa0;
+  --spec-3: #5fb0e8;
+  --spec-4: #e0f4ff;
+}
+:root[data-hue="murasaki"] {
+  --spec-1: #24113a;
+  --spec-2: #5b2e8c;
+  --spec-3: #a678e0;
+  --spec-4: #f0e0ff;
+}
+
+/* ---------- 見た目：画面の明るさ（薄い黒の幕を重ねる。指で触れるのは、幕を通りぬけて下の部品へ） ---------- */
+:root[data-dim] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: #000;
+  opacity: var(--dim, 0);
+  pointer-events: none;
+}
+
+/* ---------- 見た目の窓と、開くボタン ---------- */
+.kh-settings-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--sp-2);
+}
+.kh-look {
+  width: 48px;
+  min-height: 40px;
+  padding: 0;
+}
+.kh-look .btn-icon {
+  color: var(--gold, var(--accent));
+}
+.lk-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.lk-chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.lk-chip:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.lk-swatch {
+  display: inline-block;
+  width: 28px;
+  height: 14px;
+  border-radius: 7px;
+  border: 1px solid var(--line-strong);
+}
+/* 見た目の窓は低めにして、後ろの光背を暗くしない（色を見比べながら選べるように） */
+dialog.kh-look-sheet {
+  max-height: min(48vh, 520px);
+  overflow-y: auto;
+}
+dialog.kh-look-sheet::backdrop {
+  background: transparent;
+}
+.kh-look-sheet .tn-help {
+  margin: 0;
+}
