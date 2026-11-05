@@ -582,9 +582,10 @@ export class KouhaiView {
       g.fillText(L('響きは、巡る。', 'The sound comes around.'), ox, oy + d * 0.05);
     } else {
       // まん中（頭光）の音名
-      g.fillStyle = note ? rgbStr(colors.ink) : rgbStr(colors.muted, 0.6);
+      // 高さがはっきりしないときは、まん中を空けておく
+      g.fillStyle = rgbStr(colors.ink);
       g.font = `800 ${Math.round(d * 0.07)}px ${display}`;
-      g.fillText(note || L('観', '○'), ox, en ? oy - d * 0.018 : oy);
+      if (note) g.fillText(note, ox, en ? oy - d * 0.018 : oy);
       if (en) {
         g.fillStyle = rgbStr(colors.muted);
         g.font = `${Math.round(d * 0.034)}px ${mono}`;

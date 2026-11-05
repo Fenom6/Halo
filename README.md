@@ -19,6 +19,7 @@
 - **時計の文字盤と同じ配置**：12時がド（C）、時計回りに半音ずつ進みます。12の音名が12の時刻にちょうど重なります
 - **1周で1オクターブ**：螺旋の内側ほど低く、外側ほど高い音です。1オクターブ違いの同じ音名は同じ方向にそろうため、**和音や倍音が図形として見えます**
 - **千本の光**：螺旋から外へ伸びる光の長さと色が、その高さの音の強さを表します
+- **まん中の円で操作**：止まっているときは「タップで聴く」（押すとマイクで聴き始める）。聴いているあいだは音名、高さがはっきりしないときは「静か」「高さ不明」などの状態と、音の大きさの輪を出します。もう一度押すと止まります
 - **チューナー**：音名・周波数（Hz）・セント（半音の 1/100）を表示します。歌や楽器の音程の確認に使えます
 - **世界の音楽に合わせる**：光の輪の下のボタン（地球の印）で、次の4つを選べます（端末に保存）
   - 基準の高さ：ラ（A4）＝ 415〜466 Hz（国際標準 440、多くのオーケストラ 442・443、バロック 415 など）
@@ -150,6 +151,7 @@ tools/                開発用ツール（サーバー・点検・アイコン�
 - **Laid out like a clock face**: C is at 12 o'clock, and each step clockwise is a semitone, so the twelve note names fall on the twelve hours
 - **One octave per turn**: low notes are inside the spiral, high notes outside. Notes an octave apart point the same way, so **chords and harmonics appear as shapes**
 - **A thousand rays**: the length and color of each ray shows how strong that pitch is
+- **The center is a control**: when stopped it says “Tap to listen”; while listening it shows the note name, or a status (Quiet, No clear pitch…) with a level ring when the pitch is unclear. Tap again to stop
 - **Tuner**: note name, frequency (Hz) and cents (1/100 of a semitone)
 - **Music around the world** (the globe button under the halo): reference pitch A4 = 415–466 Hz; note names in Japanese kana, English letters, German (H), fixed do, movable do, Indian sargam (Sa Re Ga) or numbered notation (1 2 3); any note as the tonic at 12 o'clock (the spiral turns); and quarter-tone names such as “E−¼” for Arabic, Turkish and Persian music
 - **Sample: Pachelbel's Canon in D**, synthesized from the score on the spot. Choose the bass and voices 1–3 to see three voices chase the same melody two bars apart
