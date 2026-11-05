@@ -10,12 +10,21 @@
 | --- | --- | --- | --- |
 | ![ラの音を入力した画面。中央に「ラ」、9時の方向に光、下にチューナー](docs/images/halo-mic.jpg) | ![ドミソを鳴らすと、12時・4時・7時の方向に光が伸びる](docs/images/halo-touch.jpg) | ![カノンの3声がそろい、蓮の模様が開いた保存画像](docs/images/halo-saved.jpg) | ![英語版の画面。黒い背景で A4 を表示](docs/images/halo-english.jpg) |
 
+| 世界の音楽に合わせる（基準 442 Hz・サルガム・主音レ） | 設定の画面 |
+| --- | --- |
+| ![インドのサルガムで表示。12時に Sa、440 Hz の音は Pa と出て、442 Hz の基準から −8 セント](docs/images/halo-world.jpg) | ![音名の表し方・主音・基準の高さ・四分音を選ぶ画面](docs/images/halo-world-settings.jpg) |
+
 ## 特長
 
 - **時計の文字盤と同じ配置**：12時がド（C）、時計回りに半音ずつ進みます。12の音名が12の時刻にちょうど重なります
 - **1周で1オクターブ**：螺旋の内側ほど低く、外側ほど高い音です。1オクターブ違いの同じ音名は同じ方向にそろうため、**和音や倍音が図形として見えます**
 - **千本の光**：螺旋から外へ伸びる光の長さと色が、その高さの音の強さを表します
 - **チューナー**：音名・周波数（Hz）・セント（半音の 1/100）を表示します。歌や楽器の音程の確認に使えます
+- **世界の音楽に合わせる**：光の輪の下のボタン（地球の印）で、次の4つを選べます（端末に保存）
+  - 基準の高さ：ラ（A4）＝ 415〜466 Hz（国際標準 440、多くのオーケストラ 442・443、バロック 415 など）
+  - 音名の表し方：ドレミ・C D E・ドイツ式（H）・固定ド（Do Re Mi）・移動ド・インドのサルガム（Sa Re Ga）・数字譜（1 2 3）
+  - 主音：選んだ音を12時に置き、螺旋を回します（どの調でも音階が同じ形に見えます）
+  - 四分音：半音の半分の音を「ミ−¼」のように呼びます（アラブ・トルコ・ペルシャの音楽向け）
 - **サンプル：パッヘルベル「カノン ニ長調」**：楽譜から音をその場で合成します（録音ではありません）。低音・第1〜3声を選んで鳴らせるので、3つの声が同じ旋律を2小節ずつ遅れて追いかける「カノン」の構造を、光の動きで確かめられます
 - **指で鳴らす**：螺旋に触れると、最も近い半音の音が倍音つきで鳴り、そのまま光の輪に表示されます。複数の指で和音を鳴らせます（最大4音）
 - **画像として保存**：表示中の光の輪を、音名と日時入りの PNG 画像として保存・共有できます
@@ -42,7 +51,7 @@
 | 分野 | 内容 |
 | --- | --- |
 | 物理 | 音は空気の振動です。1秒あたりの振動回数が周波数（Hz）で、2倍の周波数は1オクターブ上の同じ音名に聞こえます |
-| 数学 | 螺旋上の位置は「周回 ＝ log₂(f ÷ 65.4)」で決まります。整数部分が何周目か、小数部分が方向です。例：ラ 440 Hz は 2.75 周（3周目の9時の方向） |
+| 数学 | 螺旋上の位置は「周回 ＝ log₂(f ÷ 65.4)」で決まります。整数部分が何周目か、小数部分が方向です。例：ラ 440 Hz は 2.75 周（3周目の9時の方向）。基準を 440 から a Hz に変えると、ずれは 1200 × log₂(a ÷ 440) セント（442 Hz なら約 7.9 セント） |
 | 音楽 | カノンは同じ旋律を一定の遅れで重ねる形式です。y(t) ＝ x(t) ＋ x(t − T) ＋ x(t − 2T)（x：旋律、T：遅れ） |
 | コード | Web Audio API の AnalyserNode で音を 8,192 個の周波数区分に分け（FFT）、1,000 本の光それぞれが受け持つ区分をあらかじめ表にして、毎秒約60回描画します。音の高さは YIN 法で求めます |
 
@@ -75,7 +84,7 @@ npm run serve
 
 | コマンド | 内容 |
 | --- | --- |
-| `npm test` | 単体テスト（螺旋の計算、楽譜と旋律の判定、音の高さの判定、オフライン処理、ページ内の数値と実装の一致） |
+| `npm test` | 単体テスト（螺旋の計算、楽譜と旋律の判定、音の高さの判定、世界の音名と基準の高さ、オフライン処理、ページ内の数値と実装の一致） |
 | `npm run check` | 全ファイルの構文と、オフライン用ファイル一覧（`sw.js`）の点検 |
 | `npm run serve` | ローカルサーバー（http://localhost:8080/） |
 | `npm run e2e` | ブラウザ（Chromium）による画面の通しテスト。Playwright が必要です |
@@ -105,6 +114,8 @@ js/pitch.js           音の高さの決定
 js/features.js, classify.js, dsp.js   信号処理（FFT・YIN 法・倍音・音の分類）
 js/audio.js           音の入出力（Web Audio API・AudioWorklet）
 js/i18n.js            日本語・英語の切り替え
+js/tuning.js          世界の音楽に合わせる決まり（基準の高さ・音名の表し方・主音・四分音）
+js/tuning-ui.js       その設定の画面
 js/ui.js, claude.js, prefs.js, format.js, colormap.js   画面部品・設定・書式・配色
 tests/                テスト（tests/e2e は画面の通しテスト）
 tools/                開発用ツール（サーバー・点検・アイコン・1ファイル化）
@@ -127,6 +138,7 @@ tools/                開発用ツール（サーバー・点検・アイコン�
 - **One octave per turn**: low notes are inside the spiral, high notes outside. Notes an octave apart point the same way, so **chords and harmonics appear as shapes**
 - **A thousand rays**: the length and color of each ray shows how strong that pitch is
 - **Tuner**: note name, frequency (Hz) and cents (1/100 of a semitone)
+- **Music around the world** (the globe button under the halo): reference pitch A4 = 415–466 Hz; note names in Japanese kana, English letters, German (H), fixed do, movable do, Indian sargam (Sa Re Ga) or numbered notation (1 2 3); any note as the tonic at 12 o'clock (the spiral turns); and quarter-tone names such as “E−¼” for Arabic, Turkish and Persian music
 - **Sample: Pachelbel's Canon in D**, synthesized from the score on the spot. Choose the bass and voices 1–3 to see three voices chase the same melody two bars apart
 - **Play by touch**: touch the spiral to play the nearest semitone (with harmonics); up to four fingers for chords
 - **Save as image**, **works offline**, **add to home screen**, and built-in explanations (reading the ring, physics, math, music, code)

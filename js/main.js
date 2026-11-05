@@ -13,19 +13,21 @@
  */
 import { AudioEngine } from './audio.js';
 import { KouhaiStage } from './kouhai-stage.js';
-import { KOUHAI_FFT_SIZE, clockOf, ringOf, pointToMidi } from './kouhai.js';
+import { KOUHAI_FFT_SIZE, ringOf, pointToMidi, syncSpiral } from './kouhai.js';
 import { canonScore, chordAt, ALL_VOICES_BEAT, CANON_BPM, CANON_LEAD_S } from './canon.js';
 import { choosePitch, PitchSmoother } from './pitch.js';
 import { computeFeatures } from './features.js';
 import { SoundClassifier } from './classify.js';
 import { buildLut, readTokens } from './colormap.js';
-import { analyserLikeDb, noteInfo, freqToMidi, midiToFreq } from './dsp.js';
+import { analyserLikeDb, freqToMidi } from './dsp.js';
 import { canonRound } from './synth.js';
 import { formatHz, formatCents } from './format.js';
 import { $, $$, h, toast, openDialog, onResize, saveFile } from './ui.js';
 import { prefs } from './prefs.js';
 import { isEmbedded } from './claude.js';
-import { L, noteName, clockText } from './i18n.js';
+import { L, clockText } from './i18n.js';
+import { tuning, onTuning, describe, pcName, hourOf, midiHz } from './tuning.js';
+import { initTuningSheet, loadTuning } from './tuning-ui.js';
 
 const ANALYSIS_MS = 80;
 const UI_MS = 120;
@@ -38,10 +40,12 @@ const TOUCH_PARTIALS = [1, 0.5, 0.33, 0.25, 0.2]; // 指で鳴らす音の、1�
 const TOUCH_MAX_HZ = 16000; // これより高い成分は鳴らさない
 
 const CAPTION = {
-  idle: L(
-    '12時がド。時計回りに半音ずつ進み、1周で1オクターブ高くなります（内側ほど低い音）。外へ伸びる光の長さと色が、その高さの強さです。',
-    "C is at 12 o'clock. Each step clockwise is a semitone, and one full turn is one octave higher (low notes inside). The length and color of each ray show how strong that pitch is.",
-  ),
+  // 12時の音は、主音の設定で変わる（ふだんはド）
+  idle: () =>
+    L(
+      `12時が${pcName(tuning.tonic)}。時計回りに半音ずつ進み、1周で1オクターブ高くなります（内側ほど低い音）。外へ伸びる光の長さと色が、その高さの強さです。`,
+      `${pcName(tuning.tonic)} is at 12 o'clock. Each step clockwise is a semitone, and one full turn is one octave higher (low notes inside). The length and color of each ray show how strong that pitch is.`,
+    ),
   mic: L(
     '朱色の光が、いまの高さ。淡い2つの光が、少し遅れて同じ道すじを追いかけます。歌うと、音程が半音のどちらにずれているかも見えます。',
     'The vermilion light is the pitch right now. Two faint lights follow the same path a little later. Sing, and you can see which way you are off the note.',
@@ -97,6 +101,10 @@ const el = {
   head: $('#head-status'),
   headText: $('#head-status-text'),
 };
+
+// 世界の音楽に合わせる設定（基準の高さ・音名・主音・四分音）を読み出し、螺旋の始まりを合わせてから光背を作る
+loadTuning();
+syncSpiral();
 
 const stage = new KouhaiStage({
   canvas: $('#cv-kouhai'),
@@ -218,7 +226,7 @@ function renderReadouts() {
     el.cents.dataset.off = 'true';
     setSub(
       L(`3つの声がそろった ${ch.name} の和音。`, `All three voices: a ${ch.name} chord.`),
-      ch.pcs.map((pc) => `${noteName(pc)}${L('（', '\u00a0(')}${clockText(clockOf(pc))}${L('）', ')')}`).join(L('・', ' · ')),
+      ch.pcs.map((pc) => `${pcName(pc)}${L('（', '\u00a0(')}${clockText(hourOf(pc))}${L('）', ')')}`).join(L('・', ' · ')),
     );
     return;
   }
@@ -233,10 +241,10 @@ function renderReadouts() {
     return;
   }
   const p = snap && snap.pitch;
-  const n = p ? noteInfo(p.hz) : null;
+  const n = p ? describe(p.hz) : null;
   stage.setNote(n);
   if (n) {
-    el.readNote.textContent = noteName(n.pitchClass);
+    el.readNote.textContent = n.name;
     el.readEn.textContent = n.en;
     el.readHz.textContent = formatHz(p.hz, { digits: p.hz < 1000 ? 1 : 2 });
     el.cents.dataset.off = 'false';
@@ -245,7 +253,10 @@ function renderReadouts() {
       p.kind === 'peak'
         ? L(`いちばん強い成分・${formatCents(n.cents)} セント`, `strongest component · ${formatCents(n.cents)} cents`)
         : L(`${formatCents(n.cents)} セント（半音の 1/100）`, `${formatCents(n.cents)} cents (1/100 of a semitone)`),
-      L(`${clockOf(n.pitchClass)}時の向き・${ringOf(n.midi)}周目`, `${clockText(clockOf(n.pitchClass))} · ring ${ringOf(n.midi)}`),
+      n.quarter
+        ? // 四分音は、半音と半音のあいだ（○時半の向き）
+          L(`${halfPast(n.hour)}時半の向き・${ringOf(n.midi - 0.5)}周目`, `half past ${halfPast(n.hour)} · ring ${ringOf(n.midi - 0.5)}`)
+        : L(`${n.hour}時の向き・${ringOf(n.midi)}周目`, `${clockText(n.hour)} · ring ${ringOf(n.midi)}`),
     );
   } else {
     el.readNote.textContent = '—';
@@ -261,6 +272,9 @@ function renderReadouts() {
     setSub('　', '');
   }
 }
+
+/** 四分音（上の音から四分音低い）の向き：上の音の1つ前の時刻の「半」 */
+const halfPast = (hour) => (hour === 1 ? 12 : hour - 1);
 
 // 読み取りの下の行：2つのまとまり（ずれ／向き）。折り返すときは、ことばの切れ目で折り返す。
 // 1秒に約8回書きかえるので、部品は作り直さずに文字だけを入れかえる
@@ -307,7 +321,7 @@ function setCaption() {
   const k = engine.kind;
   if (k === 'sample' && lookHint) el.caption.textContent = L(`観るところ：${lookHint}`, `What to watch: ${lookHint}`);
   else if (k === 'touch') el.caption.textContent = touchCaption();
-  else el.caption.textContent = CAPTION[k] || CAPTION.idle;
+  else el.caption.textContent = CAPTION[k] || CAPTION.idle();
 }
 
 function updateButtons() {
@@ -466,7 +480,7 @@ el.btnTouch.addEventListener('click', async () => {
 
 /** 指で鳴らす音の成分：基本の高さと、その2倍・3倍…（高すぎる成分は鳴らさない） */
 function touchParts(midi) {
-  const f = midiToFreq(midi);
+  const f = midiHz(midi); // 基準の高さ（A4）の設定どおりの高さで鳴らす
   const limit = Math.min(TOUCH_MAX_HZ, engine.sampleRate * 0.45);
   const sum = TOUCH_PARTIALS.reduce((a, b) => a + b, 0);
   return TOUCH_PARTIALS.map((g, i) => ({ freq: f * (i + 1), gain: f * (i + 1) < limit ? g / sum : 0 }));
@@ -541,8 +555,8 @@ function touchCaption() {
     .map((t) => t.midi)
     .sort((a, b) => a - b)
     .map((m) => {
-      const n = noteInfo(midiToFreq(m));
-      return L(`${n.ja}${n.octave}（${clockOf(n.pitchClass)}時）`, `${n.en} (${clockText(clockOf(n.pitchClass))})`);
+      const n = describe(midiHz(m));
+      return L(`${n.name}${n.octave}（${n.hour}時）`, `${n.name}${n.octave} (${clockText(n.hour)})`);
     });
   return L(`鳴らしている音：${names.join('・')}`, `Playing: ${names.join(' · ')}`);
 }
@@ -553,12 +567,12 @@ function probeAt(e) {
   const { x, y, dx, dy, r } = stagePoint(e);
   let text;
   if (engine.kind === 'touch') {
-    const n = noteInfo(midiToFreq(pointToMidi(dx, dy, stage.size)));
-    text = `${n.ja}${n.octave}（${formatHz(n.target)}）`;
+    const n = describe(midiHz(pointToMidi(dx, dy, stage.size)));
+    text = `${n.name}${n.octave}（${formatHz(n.target)}）`;
   } else {
     const fz = stage.freqAt(dx, dy);
-    const n = noteInfo(fz);
-    text = `${formatHz(fz)}（${n.ja}${n.octave}）`;
+    const n = describe(fz);
+    text = `${formatHz(fz)}（${n.name}${n.quarter ? '' : n.octave}）`;
   }
   el.probe.hidden = false;
   el.probeLabel.textContent = text;
@@ -611,10 +625,11 @@ el.btnSave.addEventListener('click', async () => {
   const when = stamp();
   // 音が届いていないあいだの高さは古いので、絵に書き込まない（画面と同じく）
   const p = !stalled && !deadMic && snap && snap.pitch;
-  const n = p && !showingExample ? noteInfo(p.hz) : null;
+  const n = p && !showingExample ? describe(p.hz) : null;
   const hzText = p ? formatHz(p.hz, { digits: p.hz < 1000 ? 1 : 2 }) : '';
-  const what = showingExample ? L('例：カノン', 'Example: Canon') : n ? L(`${n.ja} ${n.en}・${hzText}`, `${n.en} · ${hzText}`) : '';
-  const footer = [what, when.text].filter(Boolean).join('　');
+  const what = showingExample ? L('例：カノン', 'Example: Canon') : n ? (n.name === n.en.replace(/-?\d+$/, '') ? `${n.en}${L('・', ' · ')}${hzText}` : `${n.name} ${n.en}${L('・', ' · ')}${hzText}`) : '';
+  const a4 = tuning.a4 !== 440 ? `A4=${tuning.a4}Hz` : '';
+  const footer = [what, a4, when.text].filter(Boolean).join('　');
   el.btnSave.disabled = true;
   try {
     const canvas = await stage.exportImage(footer);
@@ -643,6 +658,20 @@ el.btnSave.addEventListener('click', async () => {
     toast(L('絵を作れませんでした', 'Could not make the picture'));
   } finally {
     el.btnSave.disabled = false;
+  }
+});
+
+// ---------- 世界の音楽に合わせる（基準の高さ・音名・主音・四分音） ----------
+initTuningSheet({ button: $('#btn-tuning'), dialog: $('#dlg-tuning') });
+onTuning(() => {
+  syncSpiral(); // 主音・基準の高さが変わると、螺旋の始まり（いちばん内側の音）が変わる
+  stage.retune();
+  releaseAllTouches();
+  setCaption();
+  if (showingExample && !engine.active) renderExample();
+  else {
+    redrawStill();
+    renderReadouts();
   }
 });
 

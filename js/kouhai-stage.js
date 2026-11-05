@@ -12,7 +12,8 @@
 import { KouhaiView, KOUHAI_GEOMETRY, pointToFreq } from './kouhai.js';
 import { EchoTrail, NoteSequence, findCanon, ALL_VOICES_BEAT } from './canon.js';
 import { freqToMidi } from './dsp.js';
-import { L, noteName } from './i18n.js';
+import { L } from './i18n.js';
+import { tuning, pcName, isAccidental } from './tuning.js';
 import { h } from './ui.js';
 
 /** 高さがはっきりしないときに、まん中に出す字（日本語は「観る」の「観」、英語は輪の「○」） */
@@ -21,12 +22,16 @@ export const QUIET = L('観', '○');
 const BLOOM_MS = 9000; // 蓮が開いてから消えるまで（CSS の bloom-life と同じ長さ）
 const SECRET_REST_MS = 10000; // 歌で蓮が開いたあと、しばらくは聴き分けない（同じ歌で何度も開かないように）
 
-/** 光背のまわりの音名（12時がド、時計回りに半音ずつ）。♯ の付く音は小さな点にする */
+/**
+ * 光背のまわりの音名（12時が主音、時計回りに半音ずつ）。♯・♭ の付く音は小さな点にする。
+ * 名前は、いまの音名の表し方（tuning.js）で付ける
+ */
 export function dialLabels() {
   return Array.from({ length: 12 }, (_, k) => {
-    const name = noteName(k);
+    const pc = tuning.tonic + k;
+    const name = pcName(pc);
     const ang = -Math.PI / 2 + (k * Math.PI) / 6;
-    const sharp = name.includes('♯');
+    const sharp = isAccidental(pc);
     return h('span', {
       class: sharp ? 'kouhai-pc is-sharp' : 'kouhai-pc',
       text: sharp ? '·' : name,
@@ -74,8 +79,22 @@ export class KouhaiStage {
     this.bloomDone = false;
     this.bloomUntil = 0;
     this.bloomTimer = 0;
-    el.dial.prepend(...dialLabels());
+    this.labels = dialLabels();
+    el.dial.prepend(...this.labels);
     buildLotus(el.bloom.querySelector('.bloom-lotus'));
+  }
+
+  /**
+   * 基準の高さ・主音・音名の表し方が変わったとき：螺旋の始まり・千本の光の受け持ち・目盛り・まわりの音名を付け直す。
+   * （syncSpiral() は呼ぶ側で先に済ませておく）
+   */
+  retune() {
+    this.view.configure({});
+    this.view.paintBase();
+    this.trail.clear();
+    const next = dialLabels();
+    this.labels.forEach((old, i) => old.replaceWith(next[i]));
+    this.labels = next;
   }
 
   setPalette(lut, colors) {
@@ -187,9 +206,9 @@ export class KouhaiStage {
     });
   }
 
-  /** まん中（頭光）の音名。n は dsp.js の noteInfo の答え。高さがはっきりしないときは「観」 */
+  /** まん中（頭光）の音名。n は tuning.js の describe の答え。高さがはっきりしないときは「観」 */
   setNote(n) {
-    this.el.note.textContent = n ? noteName(n.pitchClass) : QUIET;
+    this.el.note.textContent = n ? n.name : QUIET;
     this.el.note.dataset.quiet = String(!n);
     this.el.oct.textContent = n ? n.en : '';
   }

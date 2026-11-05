@@ -12,7 +12,8 @@
  * 朱色の光は「今の高さ」。2つの淡い光が、同じ道すじを少し遅れて追いかけます（カノン＝輪唱）。
  */
 import { midiToFreq, freqToMidi } from './dsp.js';
-import { L, noteName } from './i18n.js';
+import { L } from './i18n.js';
+import { tuning, baseMidi, pcName, isAccidental, hourOf } from './tuning.js';
 import { parseColor } from './colormap.js';
 
 export const ARM_COUNT = 1000; // 千手観音の「千」
@@ -22,6 +23,20 @@ export const KOUHAI_FMIN = midiToFreq(KOUHAI_LOW_MIDI);
 export const KOUHAI_HIGH_MIDI = KOUHAI_LOW_MIDI + 12 * KOUHAI_OCTAVES; // いちばん外側：ド C9
 
 /**
+ * いまの螺旋の始まり（tuning.js の主音と基準の高さで決まる）。上の KOUHAI_* は、主音がド・ラ＝440 Hz のときの値。
+ * 主音を変えると、その音が12時に来て、1周が「主音から次の主音まで」になる
+ */
+let lowMidi = KOUHAI_LOW_MIDI;
+let fMin = KOUHAI_FMIN;
+
+/** 螺旋の始まりを、いまの主音と基準の高さに合わせる（設定が変わったら呼ぶ） */
+export function syncSpiral() {
+  lowMidi = baseMidi(tuning.tonic);
+  fMin = midiToFreq(lowMidi, tuning.a4);
+  return { lowMidi, fMin };
+}
+
+/**
  * 観察窓（AnalyserNode）が音を分ける細かさ（FFT の点の数）。
  * 光背は内側ほど低い音で、低い音ほど1つの区分（約 48000 ÷ 点の数 Hz）が何半音にもまたがる。
  * 4096 点ではド4（262 Hz）のあたりで1区分が約 0.8 半音になり、光が扇のように広がって和音の形がぼやける。
@@ -29,15 +44,19 @@ export const KOUHAI_HIGH_MIDI = KOUHAI_LOW_MIDI + 12 * KOUHAI_OCTAVES; // いち
  */
 export const KOUHAI_FFT_SIZE = 16384;
 
-/** 音名の番号（ド=0 … シ=11）→ 時計の何時の向きか。12個の音名が、文字盤の12の時刻にちょうど重なる */
+/** 音名の番号（ド=0 … シ=11）→ 時計の何時の向きか。12個の音名が、文字盤の12の時刻にちょうど重なる（主音が12時） */
 export function clockOf(pitchClass) {
-  const pc = ((Math.round(pitchClass) % 12) + 12) % 12;
-  return pc === 0 ? 12 : pc;
+  return hourOf(pitchClass);
 }
 
-/** MIDI 番号 → 内側から数えて何周目か（1〜7。C2〜B2 が 1周目） */
+/** MIDI 番号（基準の高さで数えたもの）→ 内側から数えて何周目か（1〜7。主音がドなら C2〜B2 が 1周目） */
 export function ringOf(midi) {
-  return Math.min(KOUHAI_OCTAVES, Math.max(1, Math.floor((midi - KOUHAI_LOW_MIDI) / 12) + 1));
+  return Math.min(KOUHAI_OCTAVES, Math.max(1, Math.floor((midi - lowMidi) / 12) + 1));
+}
+
+/** 光背の中の高さ（ラ＝440 Hz で数えた MIDI 番号）→ 螺旋の何周目か */
+export function midiToTurn(m) {
+  return freqToTurn(midiToFreq(m));
 }
 
 
@@ -46,11 +65,11 @@ export const KOUHAI_GEOMETRY = { rIn: 0.135, rOut: 0.4, rLabel: 0.47, rCenter: 0
 
 /** 周波数 → 螺旋の上で「何周目か」（0〜7。整数の所がド。小数の部分が向き） */
 export function freqToTurn(f) {
-  return Math.log2(f / KOUHAI_FMIN);
+  return Math.log2(f / fMin);
 }
 
 export function turnToFreq(turn) {
-  return KOUHAI_FMIN * Math.pow(2, turn);
+  return fMin * Math.pow(2, turn);
 }
 
 /**
@@ -72,10 +91,10 @@ export function pointToFreq(dx, dy, size, g = KOUHAI_GEOMETRY) {
   return turnToFreq(Math.min(KOUHAI_OCTAVES, Math.max(0, k + frac)));
 }
 
-/** 画面の点にいちばん近い「半音」（MIDI 番号の整数。C2〜C9）。指で鳴らすときは、この高さの音を鳴らす */
+/** 画面の点にいちばん近い「半音」（基準の高さで数えた MIDI 番号の整数。螺旋の内側から外側まで）。指で鳴らすときは、この高さの音を鳴らす */
 export function pointToMidi(dx, dy, size, g = KOUHAI_GEOMETRY) {
-  const m = Math.round(freqToMidi(pointToFreq(dx, dy, size, g)));
-  return Math.min(KOUHAI_HIGH_MIDI, Math.max(KOUHAI_LOW_MIDI, m));
+  const m = Math.round(freqToMidi(pointToFreq(dx, dy, size, g), tuning.a4));
+  return Math.min(lowMidi + 12 * KOUHAI_OCTAVES, Math.max(lowMidi, m));
 }
 
 /**
@@ -217,8 +236,19 @@ export class KouhaiView {
     g.beginPath();
     g.arc(cx, cy, size * 0.44, 0, Math.PI * 2);
     g.stroke();
+    // 四分音を名前で出すときは、半音のあいだ（30分の向き）にも細い筋を引く
+    if (tuning.quarter) {
+      g.strokeStyle = rgbStr(colors.grid, 0.7);
+      for (let k = 0; k < 12; k++) {
+        const ang = -Math.PI / 2 + ((k + 0.5) * Math.PI) / 6;
+        g.beginPath();
+        g.moveTo(cx + Math.cos(ang) * size * (KOUHAI_GEOMETRY.rCenter + 0.02), cy + Math.sin(ang) * size * (KOUHAI_GEOMETRY.rCenter + 0.02));
+        g.lineTo(cx + Math.cos(ang) * size * 0.42, cy + Math.sin(ang) * size * 0.42);
+        g.stroke();
+      }
+    }
     for (let k = 0; k < 12; k++) {
-      const natural = [0, 2, 4, 5, 7, 9, 11].includes(k);
+      const natural = !isAccidental(tuning.tonic + k); // 12時から k 時の向きの音
       const ang = -Math.PI / 2 + (k * Math.PI) / 6;
       g.strokeStyle = rgbStr(natural ? colors.muted : colors.grid, natural ? 0.32 : 1);
       g.beginPath();
@@ -235,7 +265,7 @@ export class KouhaiView {
       else g.moveTo(cx + p.x, cy + p.y);
     }
     g.stroke();
-    // 各オクターブの「ド」に小さな点（ここで1周）
+    // 各オクターブの主音に小さな点（ここで1周）
     g.fillStyle = rgbStr(colors.muted);
     for (let k = 0; k <= KOUHAI_OCTAVES; k++) {
       const p = spiralPoint(k, size);
@@ -325,7 +355,7 @@ export class KouhaiView {
 
   drawBass(midi) {
     const { ctx, cx, cy, dpr } = this;
-    const turn = (midi - KOUHAI_LOW_MIDI) / 12;
+    const turn = midiToTurn(midi);
     if (turn < 0 || turn > KOUHAI_OCTAVES) return;
     const p = spiralPoint(turn, this.size);
     ctx.strokeStyle = rgbStr(this.colors.gold, 0.85);
@@ -342,7 +372,7 @@ export class KouhaiView {
     for (let v = this.orbs.length - 1; v >= 0; v--) {
       const o = this.orbs[v];
       const m = voices[v];
-      const target = m === null || m === undefined ? null : (m - KOUHAI_LOW_MIDI) / 12;
+      const target = m === null || m === undefined ? null : midiToTurn(m);
       if (target !== null && target >= -0.25 && target <= KOUHAI_OCTAVES + 0.25) {
         o.turn = o.turn === null || o.alpha < 0.05 ? target : o.turn + (target - o.turn) * kPos;
         o.alpha += (1 - o.alpha) * kAlpha;
@@ -419,9 +449,9 @@ export class KouhaiView {
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     // 12の音名（12時がド。♯ の付く音は小さな点）
-    Array.from({ length: 12 }, (_, k) => noteName(k)).forEach((name, k) => {
+    Array.from({ length: 12 }, (_, k) => pcName(tuning.tonic + k)).forEach((name, k) => {
       const ang = -Math.PI / 2 + (k * Math.PI) / 6;
-      const sharp = name.includes('♯');
+      const sharp = isAccidental(tuning.tonic + k);
       g.fillStyle = rgbStr(k === 0 ? colors.ink : colors.muted, sharp ? 0.7 : 1);
       g.font = `600 ${Math.round(d * (sharp ? 0.05 : 0.038))}px ${display}`;
       g.fillText(sharp ? '·' : name, ox + Math.cos(ang) * d * KOUHAI_GEOMETRY.rLabel, oy + Math.sin(ang) * d * KOUHAI_GEOMETRY.rLabel);

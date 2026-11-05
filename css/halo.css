@@ -1069,3 +1069,65 @@ dialog::backdrop {
   --accent-soft: #14302a;
   color-scheme: dark;
 }
+
+/* ---------- 世界の音楽に合わせる（基準の高さ・音名・主音・四分音） ---------- */
+.kh-tuning {
+  justify-content: flex-start;
+  gap: var(--sp-2);
+  min-height: 40px;
+  padding: var(--sp-1) var(--sp-3);
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+  text-align: left;
+}
+.kh-tuning .btn-icon {
+  flex: none;
+  color: var(--gold, var(--accent));
+}
+.kh-tuning-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.tn-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sp-3);
+}
+.kh-tuning-sheet {
+  grid-template-columns: minmax(0, 1fr);
+}
+.tn-naming {
+  min-width: 0; /* fieldset は、ふだん中身の幅より狭くならない（スマホではみ出す）ので */
+}
+.tn-choice span,
+.tn-quarter span {
+  display: grid;
+  gap: 2px;
+}
+.tn-choice small,
+.tn-quarter small,
+.tn-help {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+.tn-row {
+  display: grid;
+  gap: var(--sp-1);
+}
+.tn-row label {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+.tn-row select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+.tn-reset {
+  justify-self: start;
+}
