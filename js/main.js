@@ -13,7 +13,7 @@
  */
 import { AudioEngine } from './audio.js';
 import { KouhaiStage } from './kouhai-stage.js';
-import { KOUHAI_FFT_SIZE, ringOf, pointToMidi, syncSpiral } from './kouhai.js';
+import { KOUHAI_FFT_SIZE, KOUHAI_FAST_FFT_SIZE, ringOf, pointToMidi, syncSpiral } from './kouhai.js';
 import { canonScore, chordAt, ALL_VOICES_BEAT, CANON_BPM, CANON_LEAD_S } from './canon.js';
 import { choosePitch, PitchSmoother } from './pitch.js';
 import { computeFeatures } from './features.js';
@@ -26,7 +26,8 @@ import { $, $$, h, toast, openDialog, onResize, saveFile } from './ui.js';
 import { prefs } from './prefs.js';
 import { isEmbedded } from './claude.js';
 import { L, clockText } from './i18n.js';
-import { tuning, onTuning, describe, pcName, hourOf, midiHz } from './tuning.js';
+import { tuning, onTuning, describe, pcName, isAccidental, hourOf, midiHz } from './tuning.js';
+import { ClipRecorder, videoType, videoExt, clock as recClock } from './recorder.js';
 import { initTuningSheet, loadTuning } from './tuning-ui.js';
 
 const ANALYSIS_MS = 80;
@@ -58,6 +59,10 @@ const CAPTION = {
     '螺旋に触れると、いちばん近い半音の音が鳴ります。1つの音から、2倍・3倍…の光（倍音）も伸びます。何本かの指で触れると和音です。',
     'Touch the spiral to play the nearest semitone. One note also lights up 2×, 3×… (its harmonics). Touch with several fingers for a chord.',
   ),
+  keys: L(
+    '鍵盤を押すと、その音が鳴って光背に映ります。指をすべらせると、となりの鍵へ移ります。何本かの指で和音も。',
+    'Press a key to play it and see it on the halo. Slide your finger to move to the next key. Use several fingers for a chord.',
+  ),
 };
 const STATUS = {
   mic: () => L('観測中', 'Listening'),
@@ -70,9 +75,11 @@ const CANON_LOOK = L(
   '3つの光が、同じ旋律を2小節（8拍）ずつ遅れて追いかけます。金の輪は低音（8つの音のくり返し）。3つの声がそろうと……。',
   'Three lights chase the same melody, each two bars (8 beats) behind. The gold ring is the bass (eight notes, over and over). When all three voices are in…',
 );
+/** カノンの3つの声の色（CSS の --voice-1〜3）。窓の「鳴らす声」の印と同じ色 */
+const VOICE_TOKENS = ['voice-1', 'voice-2', 'voice-3'];
 
 
-const engine = new AudioEngine({ fftSize: KOUHAI_FFT_SIZE });
+const engine = new AudioEngine({ fftSize: KOUHAI_FFT_SIZE, fastFftSize: KOUHAI_FAST_FFT_SIZE });
 engine.keepAwake = prefs.get('keepAwake');
 
 const el = {
@@ -94,6 +101,16 @@ const el = {
   btnFile: $('#btn-file'),
   btnTouch: $('#btn-touch'),
   btnSave: $('#btn-save'),
+  btnRecord: $('#btn-record'),
+  btnRecordText: $('#btn-record-text'),
+  touchOpts: $('#touch-opts'),
+  optKeys: $('#opt-keys'),
+  optGlide: $('#opt-glide'),
+  keys: $('#kh-keys'),
+  keyRow: $('#kh-key-row'),
+  keyDown: $('#key-down'),
+  keyUp: $('#key-up'),
+  keyOct: $('#key-oct'),
   btnAbout: $('#btn-about'),
   fileInput: $('#file-input'),
   micError: $('#mic-error'),
@@ -119,6 +136,7 @@ const N = KOUHAI_FFT_SIZE;
 const freq = new Float32Array(N / 2).fill(-160); // 観察窓の dB の並び（高さごとの大きさ）
 const time = new Float32Array(N);
 const silent = new Float32Array(N / 2).fill(-160); // 音が届いていないときに描く「無音」
+const fastFreq = new Float32Array(KOUHAI_FAST_FFT_SIZE / 2).fill(-160); // 速い観察窓の dB の並び（高い音の光をすばやく動かす）
 const BLOCK = 4096; // 高さを調べる音の長さ（写しとり係と同じ。48 kHz で約 0.085 秒）
 let unit = 'dbfs';
 const classifier = new SoundClassifier({ unit });
@@ -140,9 +158,10 @@ let silentSince = 0;
 
 // ---------- 色 ----------
 function applyPalette() {
-  const t = readTokens(['spec-0', 'spec-1', 'spec-2', 'spec-3', 'spec-4', 'spec-mark', 'scope-bg', 'scope-grid', 'scope-ink', 'scope-muted', 'gold']);
+  const t = readTokens(['spec-0', 'spec-1', 'spec-2', 'spec-3', 'spec-4', 'spec-mark', 'scope-bg', 'scope-grid', 'scope-ink', 'scope-muted', 'gold', ...VOICE_TOKENS]);
   const lut = buildLut([t['spec-0'], t['spec-1'], t['spec-2'], t['spec-3'], t['spec-4']]);
   stage.setPalette(lut, { bg: t['scope-bg'], grid: t['scope-grid'], ink: t['scope-ink'], muted: t['scope-muted'], mark: t['spec-mark'], gold: t.gold });
+  stage.setCanonColors(VOICE_TOKENS.map((k) => t[k] || t['spec-mark']));
   redrawStill();
 }
 
@@ -171,6 +190,7 @@ function loop(now) {
   }
   if (engine.running && now - lastClockMove < CLOCK_SLACK_MS) {
     engine.getFreqData(freq);
+    engine.getFastFreqData(fastFreq);
     // 写しとり係（AudioWorklet）が届けているあいだは、そちらで解析する。届かなければ、ここで解析する
     const tapAlive = engine.tap && now - lastBlockAt < 400;
     if (!tapAlive && now - lastAnalysis >= ANALYSIS_MS) {
@@ -184,7 +204,7 @@ function loop(now) {
   const voices = stage.voices(now, engine.position);
   // 音が届いていないあいだは、古い音を描き続けない（光は残像のまま消えていく）
   const live = !stalled && !deadMic;
-  stage.draw(live ? freq : silent, live ? voices : [], dt);
+  stage.draw(live ? freq : silent, live ? voices : [], dt, live && engine.fastAnalyser ? fastFreq : null);
   if (now - lastUi >= UI_MS) {
     lastUi = now;
     renderReadouts();
@@ -331,6 +351,7 @@ function updateButtons() {
   el.btnStop.hidden = !(k === 'file' || k === 'sample');
   el.btnTouch.setAttribute('aria-pressed', String(k === 'touch'));
   el.stage.dataset.touch = k === 'touch' ? 'on' : 'off';
+  showTouchOpts();
 }
 
 function showError(msg) {
@@ -463,7 +484,7 @@ async function playCanon(parts) {
 }
 
 // ---------- 指で鳴らす ----------
-const touches = new Map(); // 指の番号 → { midi, handle, released }
+const touches = new Map(); // 指の番号 → { hz, key, handle, released }。key は鍵盤で押さえた音（MIDI 番号）
 
 el.btnTouch.addEventListener('click', async () => {
   showError('');
@@ -478,12 +499,11 @@ el.btnTouch.addEventListener('click', async () => {
   }
 });
 
-/** 指で鳴らす音の成分：基本の高さと、その2倍・3倍…（高すぎる成分は鳴らさない） */
-function touchParts(midi) {
-  const f = midiHz(midi); // 基準の高さ（A4）の設定どおりの高さで鳴らす
+/** 指で鳴らす音の成分：基本の高さ hz [Hz] と、その2倍・3倍…（高すぎる成分は鳴らさない） */
+function touchParts(hz) {
   const limit = Math.min(TOUCH_MAX_HZ, engine.sampleRate * 0.45);
   const sum = TOUCH_PARTIALS.reduce((a, b) => a + b, 0);
-  return TOUCH_PARTIALS.map((g, i) => ({ freq: f * (i + 1), gain: f * (i + 1) < limit ? g / sum : 0 }));
+  return TOUCH_PARTIALS.map((g, i) => ({ freq: hz * (i + 1), gain: hz * (i + 1) < limit ? g / sum : 0 }));
 }
 
 function stagePoint(e) {
@@ -493,17 +513,27 @@ function stagePoint(e) {
   return { x, y, dx: x - r.width / 2, dy: y - r.height / 2, r };
 }
 
-async function touchStart(e) {
-  if (touches.has(e.pointerId) || touches.size >= TOUCH_VOICES) return;
-  const { dx, dy } = stagePoint(e);
-  const entry = { midi: pointToMidi(dx, dy, stage.size), handle: null, released: false };
-  touches.set(e.pointerId, entry);
+/**
+ * 螺旋の上の点で鳴らす高さ [Hz]。
+ * ふだんは、いちばん近い半音（和音をきれいに鳴らせる）。「なめらか」のときは、指の位置そのままの高さ（ポルタメント）
+ */
+function spiralHz(dx, dy) {
+  return glide() ? stage.freqAt(dx, dy) : midiHz(pointToMidi(dx, dy, stage.size));
+}
+
+/** 1つの指（または鍵盤の1つの押さえ）で、高さ hz の音を鳴らし始める */
+async function startVoice(id, hz, key = null) {
+  if (touches.has(id) || touches.size >= TOUCH_VOICES) return;
+  const entry = { hz, key, handle: null, released: false };
+  touches.set(id, entry);
+  paintKeys();
   setCaption();
   let handle;
   try {
-    handle = await engine.tone(touchParts(entry.midi), { volume: 0.2, observe: true, release: 0.35 });
+    handle = await engine.tone(touchParts(hz), { volume: 0.2, observe: true, release: 0.35 });
   } catch (err) {
-    touches.delete(e.pointerId);
+    touches.delete(id);
+    paintKeys();
     showError(err.message || String(err));
     return;
   }
@@ -516,24 +546,23 @@ async function touchStart(e) {
   retune(entry);
 }
 
-/** 指が動いたら、いちばん近い半音へ高さを移す（すべる音） */
+/** 鳴っている音の高さを hz へ移す（音の係が 0.01 秒でなめらかにつなぐので、すべる音になる） */
+function moveVoice(id, hz, key = null) {
+  const entry = touches.get(id);
+  if (!entry || Math.abs(entry.hz - hz) < 1e-6) return;
+  entry.hz = hz;
+  entry.key = key;
+  retune(entry);
+  paintKeys();
+  setCaption();
+}
+
 function retune(entry) {
   if (!entry.handle) return;
-  touchParts(entry.midi).forEach((p, i) => {
+  touchParts(entry.hz).forEach((p, i) => {
     entry.handle.set(i, p.freq);
     entry.handle.setGain(i, p.gain);
   });
-}
-
-function touchMove(e) {
-  const entry = touches.get(e.pointerId);
-  if (!entry) return;
-  const { dx, dy } = stagePoint(e);
-  const midi = pointToMidi(dx, dy, stage.size);
-  if (midi === entry.midi) return;
-  entry.midi = midi;
-  retune(entry);
-  setCaption();
 }
 
 function releaseTouch(id) {
@@ -542,6 +571,7 @@ function releaseTouch(id) {
   touches.delete(id);
   entry.released = true;
   if (entry.handle) entry.handle.stop();
+  paintKeys();
   if (engine.kind === 'touch') setCaption();
 }
 
@@ -549,17 +579,104 @@ function releaseAllTouches() {
   for (const id of [...touches.keys()]) releaseTouch(id);
 }
 
+/** 鳴らしている音の名前。なめらかに動かしているときは、いちばん近い音からのずれ（セント）も出す */
 function touchCaption() {
-  if (!touches.size) return CAPTION.touch;
+  if (!touches.size) return keysOn() ? CAPTION.keys : CAPTION.touch;
   const names = [...touches.values()]
-    .map((t) => t.midi)
+    .map((t) => t.hz)
     .sort((a, b) => a - b)
-    .map((m) => {
-      const n = describe(midiHz(m));
-      return L(`${n.name}${n.octave}（${n.hour}時）`, `${n.name}${n.octave} (${clockText(n.hour)})`);
+    .map((hz) => {
+      const n = describe(hz);
+      const off = Math.abs(n.cents) >= 3 ? ` ${formatCents(n.cents)}` : '';
+      return L(`${n.name}${n.octave}${off}（${n.hour}時）`, `${n.name}${n.octave}${off} (${clockText(n.hour)})`);
     });
   return L(`鳴らしている音：${names.join('・')}`, `Playing: ${names.join(' · ')}`);
 }
+
+// ---------- 指で鳴らす：鍵盤となめらか ----------
+const glide = () => prefs.get('touchGlide');
+const keysOn = () => prefs.get('touchKeys');
+let keyBase = null; // 鍵盤のいちばん左の音（MIDI 番号）。null なら主音の4番目のオクターブあたり
+
+function keyRange() {
+  const low = syncSpiral().lowMidi;
+  const base = keyBase ?? low + 24;
+  return { low, base: Math.max(low, Math.min(low + 12 * 6, base)) };
+}
+
+/** 鍵盤（主音から1オクターブ上の主音まで13個）。名前は、いまの音名の表し方で */
+function buildKeys() {
+  const { base } = keyRange();
+  keyBase = base;
+  const keys = Array.from({ length: 13 }, (_, k) => {
+    const midi = base + k;
+    const pc = ((midi % 12) + 12) % 12;
+    return h('span', {
+      class: isAccidental(pc) ? 'kh-key is-sharp' : 'kh-key',
+      dataset: { midi: String(midi) },
+      text: pcName(pc),
+    });
+  });
+  el.keyRow.replaceChildren(...keys);
+  const n = describe(midiHz(base));
+  el.keyOct.textContent = `${n.name}${n.octave}`;
+  paintKeys();
+}
+
+function paintKeys() {
+  const on = new Set([...touches.values()].map((t) => t.key).filter((k) => k !== null));
+  for (const k of el.keyRow.children) k.classList.toggle('is-on', on.has(Number(k.dataset.midi)));
+}
+
+function keyAt(e) {
+  const t = document.elementFromPoint(e.clientX, e.clientY);
+  const k = t && t.closest && t.closest('.kh-key');
+  return k && el.keyRow.contains(k) ? Number(k.dataset.midi) : null;
+}
+
+el.keyRow.addEventListener('pointerdown', (e) => {
+  if (engine.kind !== 'touch') return;
+  const midi = keyAt(e);
+  if (midi === null) return;
+  e.preventDefault();
+  try {
+    el.keyRow.setPointerCapture(e.pointerId);
+  } catch {
+    /* 指を追えなくても鳴らせる */
+  }
+  startVoice(e.pointerId, midiHz(midi), midi);
+});
+el.keyRow.addEventListener('pointermove', (e) => {
+  if (!touches.has(e.pointerId)) return;
+  const midi = keyAt(e); // 指をすべらせると、となりの鍵へ移る（グリッサンド）
+  if (midi !== null) moveVoice(e.pointerId, midiHz(midi), midi);
+});
+for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) el.keyRow.addEventListener(type, (e) => releaseTouch(e.pointerId));
+
+function shiftKeys(step) {
+  const { low, base } = keyRange();
+  keyBase = Math.max(low, Math.min(low + 12 * 6, base + 12 * step));
+  releaseAllTouches();
+  buildKeys();
+}
+el.keyDown.addEventListener('click', () => shiftKeys(-1));
+el.keyUp.addEventListener('click', () => shiftKeys(1));
+
+function showTouchOpts() {
+  const touch = engine.kind === 'touch';
+  el.touchOpts.hidden = !touch;
+  el.keys.hidden = !(touch && keysOn());
+  el.optKeys.checked = keysOn();
+  el.optGlide.checked = glide();
+}
+el.optKeys.addEventListener('change', () => {
+  prefs.set('touchKeys', el.optKeys.checked);
+  releaseAllTouches();
+  showTouchOpts();
+  setCaption();
+});
+el.optGlide.addEventListener('change', () => prefs.set('touchGlide', el.optGlide.checked));
+buildKeys();
 
 // ---------- 絵に触れて調べる（指で鳴らすときは、その音が鳴る） ----------
 let probeTimer = 0;
@@ -567,8 +684,9 @@ function probeAt(e) {
   const { x, y, dx, dy, r } = stagePoint(e);
   let text;
   if (engine.kind === 'touch') {
-    const n = describe(midiHz(pointToMidi(dx, dy, stage.size)));
-    text = `${n.name}${n.octave}（${formatHz(n.target)}）`;
+    const hz = spiralHz(dx, dy);
+    const n = describe(hz);
+    text = glide() ? `${formatHz(hz)}（${n.name}${n.octave} ${formatCents(n.cents)}）` : `${n.name}${n.octave}（${formatHz(n.target)}）`;
   } else {
     const fz = stage.freqAt(dx, dy);
     const n = describe(fz);
@@ -597,11 +715,13 @@ el.stage.addEventListener('pointerdown', (e) => {
   } catch {
     /* 指を追えなくても鳴らせる */
   }
-  touchStart(e);
+  const { dx, dy } = stagePoint(e);
+  startVoice(e.pointerId, spiralHz(dx, dy));
 });
 el.stage.addEventListener('pointermove', (e) => {
   if (touches.has(e.pointerId)) {
-    touchMove(e);
+    const { dx, dy } = stagePoint(e);
+    moveVoice(e.pointerId, spiralHz(dx, dy));
     probeAt(e);
   } else if (e.pointerType === 'mouse' || e.buttons) probeAt(e);
 });
@@ -621,36 +741,47 @@ function stamp(d = new Date()) {
   return { file: `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`, text: `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}` };
 }
 
-el.btnSave.addEventListener('click', async () => {
-  const when = stamp();
+/** 絵・動画の下の帯に書く1行（いまの音名・高さ・基準の高さ・日時） */
+function footerText(when) {
   // 音が届いていないあいだの高さは古いので、絵に書き込まない（画面と同じく）
   const p = !stalled && !deadMic && snap && snap.pitch;
   const n = p && !showingExample ? describe(p.hz) : null;
   const hzText = p ? formatHz(p.hz, { digits: p.hz < 1000 ? 1 : 2 }) : '';
   const what = showingExample ? L('例：カノン', 'Example: Canon') : n ? (n.name === n.en.replace(/-?\d+$/, '') ? `${n.en}${L('・', ' · ')}${hzText}` : `${n.name} ${n.en}${L('・', ' · ')}${hzText}`) : '';
   const a4 = tuning.a4 !== 440 ? `A4=${tuning.a4}Hz` : '';
-  const footer = [what, a4, when.text].filter(Boolean).join('　');
+  return [what, a4, when.text].filter(Boolean).join('　');
+}
+
+/**
+ * できあがったファイルを、スマホでは共有の画面へ（写真に保存・家族や友だちに送る）。共有できなければ、ファイルとして保存する。
+ * 返り値は 'shared' | 'cancelled' | 'saved' | 'declined' | 'failed' | 'unavailable'
+ */
+async function shareOrSave(blob, name, type) {
+  const file = typeof File === 'function' ? new File([blob], name, { type }) : null;
+  if (!isEmbedded && file && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: L('光背', 'Halo') });
+      return 'shared';
+    } catch (err) {
+      if (err && err.name === 'AbortError') return 'cancelled';
+    }
+  }
+  return saveFile(name, blob, type);
+}
+
+el.btnSave.addEventListener('click', async () => {
+  const when = stamp();
   el.btnSave.disabled = true;
   try {
-    const canvas = await stage.exportImage(footer);
+    const canvas = await stage.exportImage(footerText(when));
     if (!canvas) {
       toast(L('まだ絵がありません', 'Nothing to save yet'));
       return;
     }
     const blob = await new Promise((ok) => canvas.toBlob(ok, 'image/png'));
     if (!blob) throw new Error('png');
-    const name = `kouhai-${when.file}.png`;
-    // スマホでは共有の画面から「画像を保存」や、家族・友だちに送れる。共有できなければ、ファイルとして保存する
-    const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
-    if (!isEmbedded && file && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: L('光背', 'Halo') });
-        return;
-      } catch (err) {
-        if (err && err.name === 'AbortError') return;
-      }
-    }
-    const r = await saveFile(name, blob, 'image/png');
+    const r = await shareOrSave(blob, `kouhai-${when.file}.png`, 'image/png');
+    if (r === 'shared' || r === 'cancelled') return;
     toast(
       r === 'saved' ? L('光背の絵を保存しました', 'Saved the picture') : r === 'declined' ? L('保存をやめました', 'Not saved') : L('保存できませんでした', 'Could not save'),
     );
@@ -661,12 +792,72 @@ el.btnSave.addEventListener('click', async () => {
   }
 });
 
+// ---------- 録画（光の動きを、短い動画に） ----------
+let clip = null;
+const RECORD_LABEL = L('録画', 'Record');
+if (!videoType()) el.btnRecord.hidden = true; // 動画を作れないブラウザでは出さない
+
+el.btnRecord.addEventListener('click', async () => {
+  if (clip && clip.recording) {
+    clip.stop();
+    return;
+  }
+  const when = stamp();
+  try {
+    await document.fonts?.ready;
+  } catch {
+    /* 書体を待てなくても録れる */
+  }
+  // スピーカーに出している音（カノン・指で鳴らす・ファイル）を動画に入れる。マイクの音は入れない
+  let audio = null;
+  try {
+    await engine.ensure();
+    audio = engine.recordAudioTrack();
+  } catch {
+    audio = null;
+  }
+  clip = new ClipRecorder({
+    paint: (target) => stage.frameInto(target, footerText(when)),
+    audio,
+    onTick: (sec) => {
+      el.btnRecordText.textContent = L(`止める ${recClock(sec)}`, `Stop ${recClock(sec)}`);
+    },
+  });
+  let done;
+  try {
+    done = clip.start();
+  } catch {
+    clip = null;
+    toast(L('このブラウザでは録画できません', 'This browser cannot record video'));
+    return;
+  }
+  el.btnRecord.setAttribute('aria-pressed', 'true');
+  el.btnRecordText.textContent = L('止める 0:00', 'Stop 0:00');
+  toast(engine.kind === 'mic' ? L('録画中（光の動きだけ。マイクの音は入れません）', 'Recording (picture only; the microphone is not recorded)') : L('録画中', 'Recording'));
+  try {
+    const blob = await done;
+    const ext = videoExt(clip.type);
+    const r = await shareOrSave(blob, `kouhai-${when.file}.${ext}`, blob.type || `video/${ext}`);
+    if (r !== 'shared' && r !== 'cancelled') {
+      toast(r === 'saved' ? L('動画を保存しました', 'Saved the video') : r === 'declined' ? L('保存をやめました', 'Not saved') : L('保存できませんでした', 'Could not save'));
+    }
+  } catch {
+    toast(L('動画を作れませんでした', 'Could not make the video'));
+  } finally {
+    el.btnRecord.setAttribute('aria-pressed', 'false');
+    el.btnRecordText.textContent = RECORD_LABEL;
+    clip = null;
+  }
+});
+
 // ---------- 世界の音楽に合わせる（基準の高さ・音名・主音・四分音） ----------
 initTuningSheet({ button: $('#btn-tuning'), dialog: $('#dlg-tuning') });
 onTuning(() => {
   syncSpiral(); // 主音・基準の高さが変わると、螺旋の始まり（いちばん内側の音）が変わる
   stage.retune();
   releaseAllTouches();
+  keyBase = null; // 鍵盤も、新しい主音から並べ直す
+  buildKeys();
   setCaption();
   if (showingExample && !engine.active) renderExample();
   else {

@@ -129,6 +129,8 @@ export class KouhaiStage {
     this.bloomDone = false;
     this.score = score;
     this.bass = null;
+    // カノンでは3つの光を声ごとに色分けする。それ以外は「朱色の光と、追いかける淡い2つの光」
+    this.view.setVoiceColors(score && this.canonColors ? this.canonColors : null);
     this.view.clear();
   }
 
@@ -171,9 +173,18 @@ export class KouhaiStage {
     return this.trail.voices(now);
   }
 
-  /** 1コマ描く。db は高さごとの大きさ [dB]、voices は voices() の答え、dt は前のコマからのミリ秒 */
-  draw(db, voices, dt) {
-    this.view.draw(db, voices, { dt, bass: this.bass });
+  /**
+   * 1コマ描く。db は高さごとの大きさ [dB]、voices は voices() の答え、dt は前のコマからのミリ秒。
+   * fast は速い観察窓の dB の並び（あれば、高い音の光をすばやく動かす）
+   */
+  draw(db, voices, dt, fast = null) {
+    this.view.draw(db, voices, { dt, bass: this.bass, fast });
+  }
+
+  /** カノンの3つの声の色（第1〜3声）。楽譜つきのサンプルを鳴らすあいだだけ使う */
+  setCanonColors(list) {
+    this.canonColors = list;
+    if (this.score) this.view.setVoiceColors(list);
   }
 
   /** 止まっているときに、今の高さ（MIDI 番号。なければ null）で描き直す */
@@ -191,19 +202,30 @@ export class KouhaiStage {
    */
   async exportImage(footer = '') {
     if (document.fonts && document.fonts.ready) await document.fonts.ready.catch(() => {});
+    return this.frameInto(null, footer);
+  }
+
+  /**
+   * いまの光背を、絵（音名・まん中の音名・蓮・下の帯つき）として target に描く（動画では毎コマ呼ぶ）。
+   * target がなければ新しい板を作る
+   */
+  frameInto(target, footer = '') {
     const cs = getComputedStyle(this.el.frame);
     const quiet = this.el.note.dataset.quiet === 'true';
-    return this.view.exportImage({
-      note: quiet ? '' : this.el.note.textContent,
-      en: quiet ? '' : this.el.oct.textContent,
-      footer,
-      bloom: this.el.frame.dataset.bloom === 'on',
-      fonts: {
-        display: cs.getPropertyValue('--font-display').trim(),
-        body: cs.getPropertyValue('--font-body').trim(),
-        mono: cs.getPropertyValue('--font-mono').trim(),
+    return this.view.exportImage(
+      {
+        note: quiet ? '' : this.el.note.textContent,
+        en: quiet ? '' : this.el.oct.textContent,
+        footer,
+        bloom: this.el.frame.dataset.bloom === 'on',
+        fonts: {
+          display: cs.getPropertyValue('--font-display').trim(),
+          body: cs.getPropertyValue('--font-body').trim(),
+          mono: cs.getPropertyValue('--font-mono').trim(),
+        },
       },
-    });
+      target,
+    );
   }
 
   /** まん中（頭光）の音名。n は tuning.js の describe の答え。高さがはっきりしないときは「観」 */

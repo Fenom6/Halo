@@ -45,6 +45,16 @@
   </div>
 
   <section class="kh-panel" aria-label="いまの高さと操作">
+    <div class="kh-touch-opts" id="touch-opts" hidden>
+      <label class="kh-chip"><input type="checkbox" id="opt-keys"><span>鍵盤も出す</span></label>
+      <label class="kh-chip"><input type="checkbox" id="opt-glide"><span>なめらかに（半音にそろえない）</span></label>
+    </div>
+    <div class="kh-keys" id="kh-keys" hidden>
+      <button type="button" class="btn btn-icon-only kh-key-oct" id="key-down" aria-label="1オクターブ下げる">−</button>
+      <div class="kh-key-row" id="kh-key-row" role="group" aria-label="鍵盤（主音から1オクターブ上の主音まで）"></div>
+      <button type="button" class="btn btn-icon-only kh-key-oct" id="key-up" aria-label="1オクターブ上げる">＋</button>
+      <p class="kh-key-from">いちばん左：<span id="key-oct"></span></p>
+    </div>
     <div class="kh-read">
       <div class="kh-read-top">
         <p class="note-line"><span class="note-name" id="kh-note">—</span><span class="note-en" id="kh-en"></span></p>
@@ -61,16 +71,17 @@
     </div>
     <div class="kh-tools">
       <button type="button" class="btn btn-quiet" id="btn-sample"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-note"></use></svg>カノン</button>
-      <button type="button" class="btn btn-quiet" id="btn-touch" aria-pressed="false"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-touch"></use></svg>指で鳴らす</button>
+      <button type="button" class="btn btn-quiet" id="btn-touch" aria-pressed="false"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-touch"></use></svg>指で<wbr>鳴らす</button>
       <button type="button" class="btn btn-quiet" id="btn-file"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-file"></use></svg>ファイル</button>
       <button type="button" class="btn btn-quiet" id="btn-save"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-keep"></use></svg>残す</button>
+      <button type="button" class="btn btn-quiet" id="btn-record" aria-pressed="false"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-rec"></use></svg><span id="btn-record-text">録画</span></button>
     </div>
     <input type="file" id="file-input" accept="audio/*" hidden>
     <p class="kh-error" id="mic-error" role="alert" hidden></p>
     <p class="kh-note-box" id="kh-embedded" hidden>この画面（Claude の中）ではマイクは使えません。「カノン」「指で鳴らす」「ファイル」で試せます。マイクで観るには、公開した光背のページをブラウザで開いてください。</p>
 
     <p class="kh-caption" id="kh-caption">12時がド。時計回りに半音ずつ進み、1周で1オクターブ高くなります（内側ほど低い音）。外へ伸びる光の長さと色が、その高さの強さです。</p>
-    <p class="kh-privacy">音はこの端末の中だけで計算します。録音も送信もしません。「残す」は絵（PNG）だけを作ります。</p>
+    <p class="kh-privacy">音はこの端末の中だけで計算します。録音も送信もしません。「残す」は絵（PNG）、「録画」は光の動きの動画を、押したときだけ作ります（マイクの音は動画に入れません）。</p>
   </section>
 </main>
 
@@ -84,9 +95,9 @@
   <fieldset class="kh-parts">
     <legend>鳴らす声（1つずつ足して聞くと、追いかけっこがよくわかります）</legend>
     <label class="check"><input type="checkbox" name="part" value="bass" checked><span>低音（くり返す8つの音）</span></label>
-    <label class="check"><input type="checkbox" name="part" value="0" checked><span>第1声（朱色の光）</span></label>
-    <label class="check"><input type="checkbox" name="part" value="1" checked><span>第2声（8拍おくれて入る）</span></label>
-    <label class="check"><input type="checkbox" name="part" value="2" checked><span>第3声（16拍おくれて入る）</span></label>
+    <label class="check"><input type="checkbox" name="part" value="0" checked><span>第1声（<i class="kh-dot v1"></i>朱色の光）</span></label>
+    <label class="check"><input type="checkbox" name="part" value="1" checked><span>第2声（<i class="kh-dot v2"></i>空色の光・8拍おくれて入る）</span></label>
+    <label class="check"><input type="checkbox" name="part" value="2" checked><span>第3声（<i class="kh-dot v3"></i>藤色の光・16拍おくれて入る）</span></label>
   </fieldset>
   <button type="button" class="btn btn-primary btn-big" id="canon-play"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-play"></use></svg>鳴らす</button>
 </dialog>
@@ -176,7 +187,8 @@
     <section aria-labelledby="ab-code">
       <h3 id="ab-code">コード：どうやって描いているか</h3>
       <ol class="kh-steps">
-        <li><strong>観察窓</strong>（Web Audio API の AnalyserNode）が、流れる音を FFT（高速フーリエ変換）で 8,192 個の高さの区分に分けます（1区分は約 2.9 Hz）。光背は内側ほど低い音で、低い音は細かく分けないと光が扇のように広がって和音の形がぼやけるので、細かく分けています（そのぶん、光の動きは少しゆっくり）。</li>
+        <li><strong>観察窓</strong>（Web Audio API の AnalyserNode）が、流れる音を FFT（高速フーリエ変換）で 8,192 個の高さの区分に分けます（1区分は約 2.9 Hz）。光背は内側ほど低い音で、低い音は細かく分けないと光が扇のように広がって和音の形がぼやけるので、細かく分けています。</li>
+        <li><strong>速い観察窓</strong>：細かく分けるには長い時間（約 0.34 秒）の音が要るので、そのままでは光の動きがゆっくりになります。そこで、短い時間（約 0.085 秒）だけを見る観察窓（2,048 個の区分、1区分 約 11.7 Hz）も並べ、半音の幅が十分に広い高い音（約 400 Hz より上）の光はこちらで描きます。400〜800 Hz では2つを少しずつ混ぜて、つなぎ目を見せません。高い音の光は、前の4倍速く動きます。物理の言葉では「時間の細かさと、高さの細かさは同時には上げられない」（不確定性の関係）ので、場所ごとにちょうどよい方を使い分けています。</li>
         <li><strong>千本の光</strong>は、それぞれが受け持つ区分を、はじめに表にしておきます（<code>armBinMap</code>）。低い音は区分のあいだを補い、高い音は範囲のいちばん大きな値をとります。</li>
         <li>1秒に約60回、光の長さと色を計算して描きます。光を明るさで10組に分け、組ごとにまとめて描くので速く描けます（<code>Path2D</code>）。</li>
         <li>約0.08秒ごとに、いまの高さを決めます（波のくり返しから求める YIN 法）。その記録を、2つの光が遅れて読みます。</li>
@@ -191,6 +203,7 @@
         <li>ド C2（約 65 Hz）より低い音と、ド C9（約 8,400 Hz）より高い音は、螺旋の外なので描きません（主音を変えると、半オクターブの範囲で上下します）。</li>
         <li>音名は 12 の半音（四分音をオンにすると 24）で付けます。純正律やインドのシュルティ、ガムランの音階のように、この格子に乗らない音は、いちばん近い名前と「セント」のずれで表します。</li>
         <li>音はこの端末の中で計算するだけです（録音も送信もしません）。</li>
+        <li>マイクの「自動で音量をそろえる」「雑音を消す」処理は、わざと切っています。オンにすると音の大きさや音色が勝手に変わり、チューナーとして正確でなくなるためです。</li>
       </ul>
     </section>
   </div>
@@ -210,6 +223,7 @@
     <symbol id="ic-touch" viewBox="0 0 24 24"><path d="M10 20.5l-3.4-4.3a1.4 1.4 0 0 1 2.1-1.8l1.3 1.3V8.6a1.4 1.4 0 0 1 2.8 0v4.6l3.9.7c1.2.2 2 1.3 1.8 2.5l-.7 4.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.2 8.6a4.2 4.2 0 0 1 8.4 0M4.6 8.6a6.8 6.8 0 0 1 13.6 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
     <symbol id="ic-keep" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.8v.6M16.2 12h-.6M12 16.2v-.6M7.8 12h.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
     <symbol id="ic-world" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.6 12h16.8M12 3.4c2.4 2.4 3.6 5.3 3.6 8.6s-1.2 6.2-3.6 8.6c-2.4-2.4-3.6-5.3-3.6-8.6s1.2-6.2 3.6-8.6Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-rec" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 10.5l5-3v9l-5-3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="9.5" cy="12" r="2.2" fill="currentColor"/></symbol>
   </defs>
 </svg>
 <!-- HALO:BODY-END -->

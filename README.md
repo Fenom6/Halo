@@ -25,9 +25,13 @@
   - 音名の表し方：ドレミ・C D E・ドイツ式（H）・固定ド（Do Re Mi）・移動ド・インドのサルガム（Sa Re Ga）・数字譜（1 2 3）
   - 主音：選んだ音を12時に置き、螺旋を回します（どの調でも音階が同じ形に見えます）
   - 四分音：半音の半分の音を「ミ−¼」のように呼びます（アラブ・トルコ・ペルシャの音楽向け）
-- **サンプル：パッヘルベル「カノン ニ長調」**：楽譜から音をその場で合成します（録音ではありません）。低音・第1〜3声を選んで鳴らせるので、3つの声が同じ旋律を2小節ずつ遅れて追いかける「カノン」の構造を、光の動きで確かめられます
+- **サンプル：パッヘルベル「カノン ニ長調」**：楽譜から音をその場で合成します（録音ではありません）。低音・第1〜3声を選んで鳴らせるので、3つの声が同じ旋律を2小節ずつ遅れて追いかける「カノン」の構造を、光の動きで確かめられます。3つの声は朱・空色・藤色に色分けされます
 - **指で鳴らす**：螺旋に触れると、最も近い半音の音が倍音つきで鳴り、そのまま光の輪に表示されます。複数の指で和音を鳴らせます（最大4音）
+  - **鍵盤**：主音から1オクターブの13鍵を、光の輪の下に出せます（指をすべらせると隣の鍵へ。オクターブは −／＋）
+  - **なめらか**：半音にそろえず、指の位置そのままの高さで鳴らします（ポルタメント）。倍音の光も一緒に滑ります
 - **画像として保存**：表示中の光の輪を、音名と日時入りの PNG 画像として保存・共有できます
+- **録画**：光の動きを、最長 30 秒の動画（iPhone は MP4、Android・パソコンは WebM）にして保存・共有できます。カノン・指で鳴らす・ファイルの音は動画に入ります。マイクの音は入れません
+- **すばやい光**：高い音（約 400 Hz より上）の光は、短い時間だけを見るもう1つの観察窓で描くので、以前の4倍速く動きます。低い音は細かい観察窓のまま（和音の形がくっきり）
 - **黒い背景**：日本語版・英語版とも、端末の設定にかかわらず黒い背景で表示します（光が金色に輝きます）
 - **英語版**：`en.html` は英語表示の版です。画面右上で日本語版と切り替えられます
 - **オフライン対応**：ホーム画面に追加でき、一度開けば通信がない場所でも使えます
@@ -53,12 +57,14 @@
 | 物理 | 音は空気の振動です。1秒あたりの振動回数が周波数（Hz）で、2倍の周波数は1オクターブ上の同じ音名に聞こえます |
 | 数学 | 螺旋上の位置は「周回 ＝ log₂(f ÷ 65.4)」で決まります。整数部分が何周目か、小数部分が方向です。例：ラ 440 Hz は 2.75 周（3周目の9時の方向）。基準を 440 から a Hz に変えると、ずれは 1200 × log₂(a ÷ 440) セント（442 Hz なら約 7.9 セント） |
 | 音楽 | カノンは同じ旋律を一定の遅れで重ねる形式です。y(t) ＝ x(t) ＋ x(t − T) ＋ x(t − 2T)（x：旋律、T：遅れ） |
-| コード | Web Audio API の AnalyserNode で音を 8,192 個の周波数区分に分け（FFT）、1,000 本の光それぞれが受け持つ区分をあらかじめ表にして、毎秒約60回描画します。音の高さは YIN 法で求めます |
+| コード | Web Audio API の AnalyserNode で音を 8,192 個の周波数区分に分け（FFT）、1,000 本の光それぞれが受け持つ区分をあらかじめ表にして、毎秒約60回描画します。高い音は、もう1つの短い観察窓（2,048 区分）で描きます（時間の細かさと高さの細かさは同時に上げられないため、場所ごとに使い分け）。音の高さは YIN 法で求めます |
 
 ## プライバシー
 
 - マイクの音は端末内でのみ処理され、録音・送信は行いません
 - 画像の保存は、利用者が「残す」を押したときだけ端末内で行います
+- 動画は「録画」を押したときだけ端末内で作ります。マイクの音は動画に入れません
+- マイクの自動音量調整・雑音除去は、測定を正確にするためオフにしています
 - 外部への通信は、文字（Google Fonts）の読み込みのみです
 
 ## 公開のしかた
@@ -112,7 +118,8 @@ js/canon.js           カノンの楽譜・各声部・旋律の判定
 js/synth.js           カノンの音の合成
 js/pitch.js           音の高さの決定
 js/features.js, classify.js, dsp.js   信号処理（FFT・YIN 法・倍音・音の分類）
-js/audio.js           音の入出力（Web Audio API・AudioWorklet）
+js/audio.js           音の入出力（Web Audio API・AudioWorklet・細かい観察窓と速い観察窓）
+js/recorder.js        録画（canvas の映像と、スピーカーの音を動画に）
 js/i18n.js            日本語・英語の切り替え
 js/tuning.js          世界の音楽に合わせる決まり（基準の高さ・音名の表し方・主音・四分音）
 js/tuning-ui.js       その設定の画面
@@ -140,7 +147,9 @@ tools/                開発用ツール（サーバー・点検・アイコン�
 - **Tuner**: note name, frequency (Hz) and cents (1/100 of a semitone)
 - **Music around the world** (the globe button under the halo): reference pitch A4 = 415–466 Hz; note names in Japanese kana, English letters, German (H), fixed do, movable do, Indian sargam (Sa Re Ga) or numbered notation (1 2 3); any note as the tonic at 12 o'clock (the spiral turns); and quarter-tone names such as “E−¼” for Arabic, Turkish and Persian music
 - **Sample: Pachelbel's Canon in D**, synthesized from the score on the spot. Choose the bass and voices 1–3 to see three voices chase the same melody two bars apart
-- **Play by touch**: touch the spiral to play the nearest semitone (with harmonics); up to four fingers for chords
+- **Play by touch**: touch the spiral to play the nearest semitone (with harmonics); up to four fingers for chords. Optional 13-key keyboard under the halo, and a glide mode (portamento) that follows your finger without snapping
+- **Fast rays**: high notes (above about 400 Hz) are drawn from a second, short analyser, so they move four times faster; low notes keep the fine analyser for crisp chord shapes
+- **Record**: save the moving halo as a video of up to 30 s (MP4 on iPhone, WebM elsewhere). Canon, touch and file sound go in; the microphone never does
 - **Save as image**, **works offline**, **add to home screen**, and built-in explanations (reading the ring, physics, math, music, code)
 
 The microphone needs the page to be served over **https**. Sound is processed on the device only; nothing is recorded or sent.
