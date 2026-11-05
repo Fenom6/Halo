@@ -46,8 +46,8 @@ const CAPTION = {
   // 12時の音は、主音の設定で変わる（ふだんはド）
   idle: () =>
     L(
-      `12時が${pcName(tuning.tonic)}。時計回りに半音ずつ進み、1周で1オクターブ高くなります（内側ほど低い音）。外へ伸びる光の長さと色が、その高さの強さです。`,
-      `${pcName(tuning.tonic)} is at 12 o'clock. Each step clockwise is a semitone, and one full turn is one octave higher (low notes inside). The length and color of each ray show how strong that pitch is.`,
+      `歌ったり弾いたりすると、音の高さが光になります。12時が${pcName(tuning.tonic)}、時計回りに半音ずつ、1周で1オクターブ。くわしい見方は右上の「i」へ。`,
+      `Sing or play, and the pitch turns into light. ${pcName(tuning.tonic)} is at 12 o'clock, a semitone per step clockwise, one octave per turn. More in the “i” at the top right.`,
     ),
   mic: L(
     '朱色の光が、いまの高さ。淡い2つの光が、少し遅れて同じ道すじを追いかけます。歌うと、音程が半音のどちらにずれているかも見えます。',
@@ -113,6 +113,9 @@ const el = {
   keyDown: $('#key-down'),
   keyUp: $('#key-up'),
   keyOct: $('#key-oct'),
+  keyFrom: $('#key-from'),
+  keyNow: $('#key-now'),
+  canvas: $('#cv-kouhai'),
   btnAbout: $('#btn-about'),
   fileInput: $('#file-input'),
   micError: $('#mic-error'),
@@ -622,9 +625,14 @@ function buildKeys() {
   const keys = Array.from({ length: 13 }, (_, k) => {
     const midi = base + k;
     const pc = ((midi % 12) + 12) % 12;
-    return h('span', {
+    const n = describe(midiHz(midi));
+    // ボタンにしておくと、Tab で鍵へ移り、Enter・スペースで鳴らせる（マウスや指を使えない人も弾ける）。読み上げでは「ラ4（A4）」
+    return h('button', {
+      type: 'button',
       class: isAccidental(pc) ? 'kh-key is-sharp' : 'kh-key',
       dataset: { midi: String(midi) },
+      'aria-label': n.name === n.en.replace(/-?\d+$/, '') ? n.en : `${n.name}${n.octave}（${n.en}）`,
+      'aria-pressed': 'false',
       text: pcName(pc),
     });
   });
@@ -636,7 +644,19 @@ function buildKeys() {
 
 function paintKeys() {
   const on = new Set([...touches.values()].map((t) => t.key).filter((k) => k !== null));
-  for (const k of el.keyRow.children) k.classList.toggle('is-on', on.has(Number(k.dataset.midi)));
+  for (const k of el.keyRow.children) {
+    const pressed = on.has(Number(k.dataset.midi));
+    k.classList.toggle('is-on', pressed);
+    k.setAttribute('aria-pressed', String(pressed));
+  }
+  // 押している音を、鍵盤のすぐ下に大きく出す（小さな画面では、鍵の上の字が小さいため）
+  const playing = [...on].sort((a, b) => a - b).map((m) => {
+    const n = describe(midiHz(m));
+    return `${n.name}${n.octave}`;
+  });
+  el.keyNow.textContent = playing.join(L('・', ' · '));
+  el.keyNow.hidden = !playing.length;
+  el.keyFrom.hidden = !!playing.length;
 }
 
 function keyAt(e) {
@@ -663,6 +683,26 @@ el.keyRow.addEventListener('pointermove', (e) => {
   if (midi !== null) moveVoice(e.pointerId, midiHz(midi), midi);
 });
 for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) el.keyRow.addEventListener(type, (e) => releaseTouch(e.pointerId));
+
+// キーボードで弾く：鍵に Tab で移り、Enter かスペースを押しているあいだ鳴る（離すと止まる）
+const isPlayKey = (e) => e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar';
+el.keyRow.addEventListener('keydown', (e) => {
+  const k = e.target.closest && e.target.closest('.kh-key');
+  if (!k || !isPlayKey(e)) return;
+  e.preventDefault(); // スペースで画面が動かないように
+  if (e.repeat || engine.kind !== 'touch') return; // 押しっぱなしの連打は1回の音
+  const midi = Number(k.dataset.midi);
+  startVoice(`key:${midi}`, midiHz(midi), midi);
+});
+el.keyRow.addEventListener('keyup', (e) => {
+  const k = e.target.closest && e.target.closest('.kh-key');
+  if (k && isPlayKey(e)) releaseTouch(`key:${k.dataset.midi}`);
+});
+// 押したまま別の所へ移った（Tab・画面の切り替え）ときも止める
+el.keyRow.addEventListener('focusout', (e) => {
+  const k = e.target.closest && e.target.closest('.kh-key');
+  if (k) releaseTouch(`key:${k.dataset.midi}`);
+});
 
 function shiftKeys(step) {
   const { low, base } = keyRange();
@@ -875,6 +915,31 @@ onTuning(() => {
     redrawStill();
     renderReadouts();
   }
+});
+
+/**
+ * 絵（canvas）の説明：画面読み上げソフトが、絵の代わりに読む文。12時の音は、主音と音名の表し方の設定に合わせる
+ * （見える音名と、読み上げる音名が食い違わないように）
+ */
+function describeCanvas() {
+  const top = pcName(tuning.tonic);
+  el.canvas.setAttribute(
+    'aria-label',
+    L(
+      `光背。音の高さを螺旋に並べた絵。12時が${top}、時計回りに半音ずつ、1周で1オクターブ。外へ伸びる光の長さと色が、その高さの強さ。`,
+      `Halo: pitch laid out on a spiral. ${top} at 12 o'clock, a semitone per step clockwise, one octave per turn. The length and color of the rays show how strong each pitch is.`,
+    ),
+  );
+}
+onTuning(describeCanvas);
+describeCanvas();
+
+// ---------- 最初の一歩：例のカノンを、そのまま鳴らす（声を選ぶ窓を通らない） ----------
+el.badge.addEventListener('pointerdown', (e) => e.stopPropagation()); // 絵に触れて調べる係に渡さない
+el.badge.addEventListener('click', () => {
+  showError('');
+  engine.ensure().catch(() => {}); // ボタンを押した瞬間に音の部品を起こす（スマホの自動再生の制限のため）
+  playCanon({ bass: true, voices: [true, true, true] });
 });
 
 // ---------- しくみ（見方・物理・数学・英語・コード） ----------

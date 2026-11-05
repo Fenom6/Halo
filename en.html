@@ -41,7 +41,7 @@
       <p class="bloom-text"><span class="bloom-title">Canon</span><span class="bloom-line">The sound comes around.</span></p>
     </div>
     <div class="probe" id="probe" data-axis="none" hidden><span class="probe-line"></span><span class="probe-label" id="probe-label"></span></div>
-    <p class="kh-badge" id="kh-badge">Example</p>
+    <button type="button" class="kh-badge" id="kh-badge"><span class="kh-badge-ex">Example</span><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-play"></use></svg>Listen to the Canon</button>
   </div>
 
   <section class="kh-panel" aria-label="Current pitch and controls">
@@ -53,7 +53,8 @@
       <button type="button" class="btn btn-icon-only kh-key-oct" id="key-down" aria-label="One octave down">−</button>
       <div class="kh-key-row" id="kh-key-row" role="group" aria-label="Keyboard (tonic to the tonic an octave up)"></div>
       <button type="button" class="btn btn-icon-only kh-key-oct" id="key-up" aria-label="One octave up">+</button>
-      <p class="kh-key-from">Leftmost key: <span id="key-oct"></span></p>
+      <p class="kh-key-from" id="key-from">Leftmost key: <span id="key-oct"></span></p>
+      <p class="kh-key-now" id="key-now" aria-live="polite" hidden></p>
     </div>
     <div class="kh-read">
       <div class="kh-read-top">
@@ -80,7 +81,7 @@
     <p class="kh-error" id="mic-error" role="alert" hidden></p>
     <p class="kh-note-box" id="kh-embedded" hidden>The microphone cannot be used here (inside Claude). Try "Canon", "Touch" or "File". To use the microphone, open the published Halo page in your browser.</p>
 
-    <p class="kh-caption" id="kh-caption">C is at 12 o'clock. Each step clockwise is a semitone, and one full turn is one octave higher (low notes inside). The length and color of each ray show how strong that pitch is.</p>
+    <p class="kh-caption" id="kh-caption">Sing or play, and the pitch turns into light. C is at 12 o'clock, a semitone per step clockwise, one octave per turn. More in the “i” at the top right.</p>
     <p class="kh-privacy">Sound is processed only on this device. Nothing is recorded or sent. "Save" makes a picture (PNG) and "Record" a video of the light, only when you press them (the microphone is never put into the video).</p>
   </section>
 </main>
