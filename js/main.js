@@ -611,7 +611,8 @@ function stamp(d = new Date()) {
 
 el.btnSave.addEventListener('click', async () => {
   const when = stamp();
-  const p = snap && snap.pitch;
+  // 音が届いていないあいだの高さは古いので、絵に書き込まない（画面と同じく）
+  const p = !stalled && !deadMic && snap && snap.pitch;
   const n = p && !showingExample ? noteInfo(p.hz) : null;
   const hzText = p ? formatHz(p.hz, { digits: p.hz < 1000 ? 1 : 2 }) : '';
   const what = showingExample ? L('例：カノン', 'Example: Canon') : n ? L(`${n.ja} ${n.en}・${hzText}`, `${n.en} · ${hzText}`) : '';

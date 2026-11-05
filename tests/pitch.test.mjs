@@ -46,3 +46,21 @@ test('ちらつき防止：直近3回の中央値。1半音より大きく飛ん
   assert.equal(s.push(f0(523.3)).hz, 523.3, '高さがなかったあとは、新しく数える');
   assert.equal(s.push({ hz: 520, kind: 'peak' }).kind, 'peak', '種類は新しいものを返す');
 });
+
+test('いちばん内側のド（C2 ≒ 65 Hz）は、44.1・48・96 kHz のどの端末でも高さが出る', () => {
+  for (const rate of [44100, 48000, 96000]) {
+    const f0 = 65.406;
+    // 指で鳴らす音と同じ形（1〜5倍の成分）。写しとり係が届ける 4096 サンプル
+    const x = Float32Array.from({ length: 4096 }, (_, i) =>
+      [1, 0.5, 0.33, 0.25, 0.2].reduce((a, g, h) => a + 0.09 * g * Math.sin((2 * Math.PI * f0 * (h + 1) * i) / rate), 0),
+    );
+    const cls = new SoundClassifier({ unit: 'dbfs' });
+    let p = null;
+    for (let k = 0; k < 6; k++) {
+      const f = computeFeatures(x, rate);
+      p = choosePitch(f, cls.push(f, f.dbA).id);
+    }
+    assert.ok(p, `${rate} Hz で高さが出ない`);
+    assert.equal(noteInfo(p.hz).en, 'C2', `${rate} Hz`);
+  }
+});

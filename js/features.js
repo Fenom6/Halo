@@ -52,7 +52,7 @@ export function thirdOctaveBands(power, binHz) {
  * power と binHz は、計算に使ったパワースペクトルそのもの（power[k] が k × binHz [Hz] の成分）。
  * 掌中眼（eye.js）が「探す音の高さのところだけ」を測るのに使う。保存はしない（大きいので）。
  */
-export function computeFeatures(block, sampleRate, { pitchSize = 2048 } = {}) {
+export function computeFeatures(block, sampleRate, { pitchSize = Math.round((2048 * Math.max(48000, sampleRate)) / 48000) } = {}) {
   const n = largestPow2(block.length);
   const power = powerSpectrum(block, n);
   const binHz = sampleRate / n;
@@ -63,7 +63,9 @@ export function computeFeatures(block, sampleRate, { pitchSize = 2048 } = {}) {
   const dbZ = weightedLevelDb(power, null);
   const dbA = weightedLevelDb(power, aWeightTable(n, sampleRate));
 
-  // 高さ：新しい 2048 サンプル（48 kHz で約 43 ミリ秒）で YIN 法
+  // 高さ：新しい約 43 ミリ秒（48 kHz で 2048 サンプル）で YIN 法。
+  // 96 kHz の端末では同じ時間が 4096 サンプルになる。サンプルの数で固定すると時間が半分になり、
+  // 低い音（ド C2 ≒ 65 Hz）の1回ぶんのくり返しが入りきらず、高さが出なくなるため
   const tail = block.length > pitchSize ? slice(block, block.length - pitchSize) : block;
   const { freq: pitchHz, clarity } = yinPitch(tail, sampleRate, { fMin: 60, fMax: 4000 });
 
