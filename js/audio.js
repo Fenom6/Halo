@@ -87,11 +87,14 @@ function micError(e) {
 }
 
 export class AudioEngine extends EventTarget {
-  constructor({ fftSize = 4096 } = {}) {
+  constructor({ fftSize = 4096, fastFftSize = 0 } = {}) {
     super();
     this.fftSize = fftSize;
+    this.fastFftSize = fastFftSize; // 0 でなければ、速い観察窓（短い時間ぶんだけ見る）も並べて置く
     this.ctx = null;
     this.analyser = null;
+    this.fastAnalyser = null;
+    this.recordDest = null;
     this.output = null;
     this.kind = null; // 'mic' | 'file' | 'sample' | null
     this.sourceName = '';
@@ -155,6 +158,14 @@ export class AudioEngine extends EventTarget {
       this.sink = this.ctx.createGain();
       this.sink.gain.value = 0;
       this.analyser.connect(this.sink);
+      if (this.fastFftSize) {
+        // 速い観察窓：同じ音を、短い時間ぶんだけ見る（高い音の光をすばやく動かすため）
+        this.fastAnalyser = this.ctx.createAnalyser();
+        this.fastAnalyser.fftSize = this.fastFftSize;
+        this.fastAnalyser.smoothingTimeConstant = 0;
+        this.input.connect(this.fastAnalyser);
+        this.fastAnalyser.connect(this.sink);
+      }
       this.sink.connect(this.ctx.destination);
       this.output = this.ctx.createGain();
       this.output.gain.value = 0.9;
@@ -308,6 +319,26 @@ export class AudioEngine extends EventTarget {
   getFreqData(out) {
     this.analyser.getFloatFrequencyData(out);
     return out;
+  }
+
+  /** 速い観察窓の dB の並び。速い観察窓がなければ null */
+  getFastFreqData(out) {
+    if (!this.fastAnalyser) return null;
+    this.fastAnalyser.getFloatFrequencyData(out);
+    return out;
+  }
+
+  /**
+   * 動画に入れる音（スピーカーに出している音：カノン・指で鳴らす・ファイル）。
+   * マイクの音はスピーカーに出していないので、入らない（録音はしない約束のため）。使えなければ null
+   */
+  recordAudioTrack() {
+    if (!this.ctx || typeof this.ctx.createMediaStreamDestination !== 'function') return null;
+    if (!this.recordDest) {
+      this.recordDest = this.ctx.createMediaStreamDestination();
+      this.output.connect(this.recordDest);
+    }
+    return this.recordDest.stream.getAudioTracks()[0] || null;
   }
 
   afterStart() {

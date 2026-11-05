@@ -45,6 +45,16 @@
   </div>
 
   <section class="kh-panel" aria-label="Current pitch and controls">
+    <div class="kh-touch-opts" id="touch-opts" hidden>
+      <label class="kh-chip"><input type="checkbox" id="opt-keys"><span>Show keyboard</span></label>
+      <label class="kh-chip"><input type="checkbox" id="opt-glide"><span>Glide (don't snap to semitones)</span></label>
+    </div>
+    <div class="kh-keys" id="kh-keys" hidden>
+      <button type="button" class="btn btn-icon-only kh-key-oct" id="key-down" aria-label="One octave down">−</button>
+      <div class="kh-key-row" id="kh-key-row" role="group" aria-label="Keyboard (tonic to the tonic an octave up)"></div>
+      <button type="button" class="btn btn-icon-only kh-key-oct" id="key-up" aria-label="One octave up">+</button>
+      <p class="kh-key-from">Leftmost key: <span id="key-oct"></span></p>
+    </div>
     <div class="kh-read">
       <div class="kh-read-top">
         <p class="note-line"><span class="note-name" id="kh-note">—</span><span class="note-en" id="kh-en"></span></p>
@@ -64,13 +74,14 @@
       <button type="button" class="btn btn-quiet" id="btn-touch" aria-pressed="false"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-touch"></use></svg>Touch</button>
       <button type="button" class="btn btn-quiet" id="btn-file"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-file"></use></svg>File</button>
       <button type="button" class="btn btn-quiet" id="btn-save"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-keep"></use></svg>Save</button>
+      <button type="button" class="btn btn-quiet" id="btn-record" aria-pressed="false"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-rec"></use></svg><span id="btn-record-text">Record</span></button>
     </div>
     <input type="file" id="file-input" accept="audio/*" hidden>
     <p class="kh-error" id="mic-error" role="alert" hidden></p>
     <p class="kh-note-box" id="kh-embedded" hidden>The microphone cannot be used here (inside Claude). Try "Canon", "Touch" or "File". To use the microphone, open the published Halo page in your browser.</p>
 
     <p class="kh-caption" id="kh-caption">C is at 12 o'clock. Each step clockwise is a semitone, and one full turn is one octave higher (low notes inside). The length and color of each ray show how strong that pitch is.</p>
-    <p class="kh-privacy">Sound is processed only on this device. Nothing is recorded or sent. "Save" only makes a picture (PNG).</p>
+    <p class="kh-privacy">Sound is processed only on this device. Nothing is recorded or sent. "Save" makes a picture (PNG) and "Record" a video of the light, only when you press them (the microphone is never put into the video).</p>
   </section>
 </main>
 
@@ -84,9 +95,9 @@
   <fieldset class="kh-parts">
     <legend>Voices to play (add them one at a time to hear the chase)</legend>
     <label class="check"><input type="checkbox" name="part" value="bass" checked><span>Bass (the eight repeating notes)</span></label>
-    <label class="check"><input type="checkbox" name="part" value="0" checked><span>Voice 1 (the vermilion light)</span></label>
-    <label class="check"><input type="checkbox" name="part" value="1" checked><span>Voice 2 (enters 8 beats later)</span></label>
-    <label class="check"><input type="checkbox" name="part" value="2" checked><span>Voice 3 (enters 16 beats later)</span></label>
+    <label class="check"><input type="checkbox" name="part" value="0" checked><span>Voice 1 (<i class="kh-dot v1"></i>vermilion light)</span></label>
+    <label class="check"><input type="checkbox" name="part" value="1" checked><span>Voice 2 (<i class="kh-dot v2"></i>sky-blue light, enters 8 beats later)</span></label>
+    <label class="check"><input type="checkbox" name="part" value="2" checked><span>Voice 3 (<i class="kh-dot v3"></i>wisteria light, enters 16 beats later)</span></label>
   </fieldset>
   <button type="button" class="btn btn-primary btn-big" id="canon-play"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-play"></use></svg>Play</button>
 </dialog>
@@ -172,7 +183,8 @@
     <section aria-labelledby="ab-code">
       <h3 id="ab-code">Code: how it is drawn</h3>
       <ol class="kh-steps">
-        <li>An <strong>AnalyserNode</strong> (Web Audio API) splits the incoming sound with an FFT (fast Fourier transform) into 8,192 frequency bins (each about 2.9 Hz wide). Low notes sit inside the halo, and they need fine bins or the rays fan out and blur the chord shapes (the price: the rays move a little slower).</li>
+        <li>An <strong>AnalyserNode</strong> (Web Audio API) splits the incoming sound with an FFT (fast Fourier transform) into 8,192 frequency bins (each about 2.9 Hz wide). Low notes sit inside the halo, and they need fine bins or the rays fan out and blur the chord shapes.</li>
+        <li><strong>A fast analyser</strong>: fine bins need a long stretch of sound (about 0.34 s), which would make the rays sluggish. So a second analyser looks at only about 0.085 s (2,048 bins, each about 11.7 Hz). High notes (above about 400 Hz), where a semitone spans several of those bins, are drawn from it, and between 400 and 800 Hz the two are blended so there is no seam. High rays now move four times faster. In physics terms you cannot sharpen time and pitch at once (the uncertainty relation), so each part of the spiral uses the one that suits it.</li>
         <li>Each of the <strong>thousand rays</strong> knows in advance which bins it covers (<code>armBinMap</code>). Low rays interpolate between bins; high rays take the largest value in their range.</li>
         <li>About 60 times a second, the length and color of every ray is computed and drawn. Rays are grouped into ten brightness buckets and drawn per bucket, which keeps it fast (<code>Path2D</code>).</li>
         <li>About every 0.08 s the current pitch is measured (the YIN method, from how the wave repeats). The two faint lights read that history with a delay.</li>
@@ -187,6 +199,7 @@
         <li>Notes below C2 (about 65 Hz) or above C9 (about 8,400 Hz) are off the spiral and not drawn (choosing another tonic shifts this range by up to half an octave).</li>
         <li>Note names use the 12 semitones (24 with quarter tones on). Notes off that grid, such as just intonation, Indian shruti or gamelan scales, are shown as the nearest name plus how many cents away.</li>
         <li>Sound is only processed on this device. Nothing is recorded or sent.</li>
+        <li>The microphone's automatic gain and noise suppression are switched off on purpose: they change loudness and tone on their own, which would make the tuner inaccurate.</li>
         <li>On iPhone, "Canon" and "Touch" may be silent when the ring/silent switch is set to silent.</li>
       </ul>
     </section>
@@ -207,6 +220,7 @@
     <symbol id="ic-touch" viewBox="0 0 24 24"><path d="M10 20.5l-3.4-4.3a1.4 1.4 0 0 1 2.1-1.8l1.3 1.3V8.6a1.4 1.4 0 0 1 2.8 0v4.6l3.9.7c1.2.2 2 1.3 1.8 2.5l-.7 4.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.2 8.6a4.2 4.2 0 0 1 8.4 0M4.6 8.6a6.8 6.8 0 0 1 13.6 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
     <symbol id="ic-keep" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.8v.6M16.2 12h-.6M12 16.2v-.6M7.8 12h.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
     <symbol id="ic-world" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.6 12h16.8M12 3.4c2.4 2.4 3.6 5.3 3.6 8.6s-1.2 6.2-3.6 8.6c-2.4-2.4-3.6-5.3-3.6-8.6s1.2-6.2 3.6-8.6Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-rec" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 10.5l5-3v9l-5-3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="9.5" cy="12" r="2.2" fill="currentColor"/></symbol>
   </defs>
 </svg>
 <!-- HALO:BODY-END -->

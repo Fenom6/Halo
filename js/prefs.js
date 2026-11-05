@@ -9,6 +9,8 @@ export const DEFAULT_PREFS = {
   minDb: -100, // 色の濃さ：これより小さい成分は地の色
   maxDb: -25,
   keepAwake: true, // 観ているあいだは画面を消さない
+  touchKeys: false, // 指で鳴らすとき、鍵盤も出す
+  touchGlide: false, // 指で鳴らすとき、半音にそろえず、指の位置そのままの高さで鳴らす（ポルタメント）
 };
 
 function load() {

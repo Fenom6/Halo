@@ -221,6 +221,52 @@ try {
     expect((await page.getAttribute('#kh-stage', 'data-touch')) === 'off', '指で鳴らすが止まらない');
   });
 
+  await check('指で鳴らす：鍵盤（主音から13鍵）。ラの鍵でラが鳴って映り、すべらせるとシへ移る。離すと止まる', async () => {
+    await page.click('#btn-touch');
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '鳴らし中', null, { timeout: 5000 });
+    expect(await page.locator('#touch-opts').isVisible(), '指で鳴らすときの切り替えが出ない');
+    expect(await page.locator('#kh-keys').isHidden(), '最初から鍵盤が出ている');
+    await page.check('#opt-keys');
+    expect(await page.locator('#kh-keys').isVisible(), '鍵盤が出ない');
+    const names = await page.locator('#kh-key-row .kh-key').allInnerTexts();
+    expect(names.length === 13 && names[0] === 'ド' && names[9] === 'ラ' && names[12] === 'ド', `鍵の名前が ${names.join(' ')}`);
+    expect((await text('#key-oct')) === 'ド4', `いちばん左が ${await text('#key-oct')}`);
+    const a = await page.locator('#kh-key-row .kh-key').nth(9).boundingBox();
+    const b = await page.locator('#kh-key-row .kh-key').nth(11).boundingBox();
+    await page.mouse.move(a.x + a.width / 2, a.y + a.height - 10);
+    await page.mouse.down();
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'ラ', null, { timeout: 5000 });
+    expect((await page.locator('#kh-key-row .kh-key.is-on').count()) === 1, '押した鍵が光らない');
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height - 10, { steps: 4 });
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'シ', null, { timeout: 5000 });
+    await shot('k05b-keys');
+    await page.mouse.up();
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === '観', null, { timeout: 5000 });
+    // オクターブを上げると、いちばん左が ド5
+    await page.click('#key-up');
+    expect((await text('#key-oct')) === 'ド5', `上げたあと ${await text('#key-oct')}`);
+    await page.click('#key-down');
+    await page.uncheck('#opt-keys');
+  });
+
+  await check('指で鳴らす：なめらか（ポルタメント）。半音のあいだに触れると、そのままの高さで鳴り、ずれ（セント）が出る', async () => {
+    await page.check('#opt-glide');
+    const p = await spiralXY(page, 69.5);
+    await page.mouse.move(p.x, p.y);
+    await page.mouse.down();
+    await page.waitForFunction(() => /[+−]\d+/.test(document.querySelector('#kh-caption').textContent), null, { timeout: 5000 });
+    const cap = await text('#kh-caption');
+    const m = cap.match(/([+−])(\d+)/);
+    expect(m && Number(m[2]) >= 35, `半音のあいだのずれが「${cap}」`);
+    const label = await text('#probe-label');
+    expect(/Hz（/.test(label), `触れた所の表示が「${label}」`);
+    await page.mouse.up();
+    await page.uncheck('#opt-glide');
+    await page.click('#btn-touch');
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
+    expect(await page.locator('#touch-opts').isHidden(), '止めても切り替えが残っている');
+  });
+
   await check('カノン：声を選んで鳴らせる。3つの光が追いかけ、3つの声がそろうと蓮が開く。光背で観るところが出る', async () => {
     await page.click('#btn-sample');
     await page.waitForSelector('#dlg-canon[open]');
@@ -233,6 +279,23 @@ try {
     await page.waitForFunction(() => !document.querySelector('#bloom').hidden, null, { timeout: 20000 });
     await page.waitForTimeout(2600);
     await shot('k07-canon-bloom');
+    // 3つの声は色分け（第2声は空色、第3声は藤色）
+    const hues = await page.evaluate(() => {
+      const c = document.querySelector('#cv-kouhai');
+      const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+      const css = getComputedStyle(document.documentElement);
+      const rgb = (k) => {
+        const n = parseInt(css.getPropertyValue(k).trim().slice(1), 16);
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      };
+      return ['--voice-2', '--voice-3'].map((k) => {
+        const [r, g, b] = rgb(k);
+        let n = 0;
+        for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - r) + Math.abs(d[i + 1] - g) + Math.abs(d[i + 2] - b) < 30) n++;
+        return n;
+      });
+    });
+    expect(hues[0] > 20 && hues[1] > 20, `声ごとの色の光が見つからない（空色 ${hues[0]}・藤色 ${hues[1]} 画素）`);
     // 蓮が開いているあいだに残すと、蓮も絵に入る
     const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 8000 }), page.click('#btn-save')]);
     if (SHOTS) await writeFile(join(SHOTS, 'k07b-saved-bloom.png'), await readFile(await dl.path()));
@@ -252,6 +315,21 @@ try {
     await page.click('#btn-sample');
     for (const v of ['bass', '1', '2']) await page.check(`#dlg-canon input[name="part"][value="${v}"]`);
     await page.keyboard.press('Escape');
+  });
+
+  await check('録画：押すと録り始め、もう一度押すと、光の動きの動画（WebM）ができる', async () => {
+    expect(await page.locator('#btn-record').isVisible(), '録画のボタンがない');
+    await page.click('#btn-record');
+    await page.waitForFunction(() => document.querySelector('#btn-record').getAttribute('aria-pressed') === 'true', null, { timeout: 5000 });
+    await page.waitForTimeout(1600);
+    expect((await text('#btn-record-text')).startsWith('止める 0:0'), `録画中の表示が「${await text('#btn-record-text')}」`);
+    const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 10000 }), page.click('#btn-record')]);
+    expect(/^kouhai-\d{8}-\d{6}\.(webm|mp4)$/.test(dl.suggestedFilename()), dl.suggestedFilename());
+    const buf = await readFile(await dl.path());
+    expect(buf.length > 2000, `動画が小さすぎる（${buf.length} バイト）`);
+    if (dl.suggestedFilename().endsWith('.webm')) expect(buf.readUInt32BE(0) === 0x1a45dfa3, 'WebM の印（EBML）がない');
+    await page.waitForFunction(() => document.querySelector('#btn-record').getAttribute('aria-pressed') === 'false', null, { timeout: 5000 });
+    expect((await text('#btn-record-text')) === '録画', '録画のボタンが元に戻らない');
   });
 
   await check('しくみ：見方・物理・数学・英語・コードの説明がある', async () => {

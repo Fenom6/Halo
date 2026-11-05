@@ -44,6 +44,48 @@ export function syncSpiral() {
  */
 export const KOUHAI_FFT_SIZE = 16384;
 
+/**
+ * 速い観察窓の細かさ。4096 点なら 1回に見る音は約 0.085 秒（16384 点の 1/4）なので、光が4倍速く動く。
+ * そのかわり1区分は約 11.7 Hz と粗いので、半音の幅が区分3つ分より広くなる高い音（約 400 Hz より上）だけに使う。
+ * 低い音は細かい観察窓、高い音は速い観察窓、そのあいだ（約 400〜800 Hz）は2つを少しずつ混ぜて、つなぎ目を見せない。
+ */
+export const KOUHAI_FAST_FFT_SIZE = 4096;
+export const FAST_FROM_HZ = 400;
+export const FAST_FULL_HZ = 800;
+
+/** 周波数 f の光を、どれだけ速い観察窓で描くか（0：細かい窓だけ 〜 1：速い窓だけ） */
+export function fastWeight(f) {
+  if (!(f > FAST_FROM_HZ)) return 0;
+  if (f >= FAST_FULL_HZ) return 1;
+  return Math.log2(f / FAST_FROM_HZ) / Math.log2(FAST_FULL_HZ / FAST_FROM_HZ);
+}
+
+/**
+ * 千本の光それぞれの大きさ [dB] を、細かい窓（slow）と速い窓（fast）から求めて out に入れる。いちばん大きい値を返す。
+ * fast がなければ（止めた絵・例の絵など）、細かい窓だけで求める。
+ */
+export function armLevels(slow, fast, maps, out) {
+  let top = -Infinity;
+  for (let i = 0; i < out.length; i++) {
+    const w = fast && maps.fast ? maps.weight[i] : 0;
+    let v = w < 1 ? readArm(slow, maps.slow, i) : 0;
+    if (w > 0) v = v * (1 - w) + readArm(fast, maps.fast, i) * w;
+    out[i] = v;
+    if (v > top) top = v;
+  }
+  return top;
+}
+
+function readArm(db, { mode, a, b, frac }, i) {
+  if (mode[i] === 0) {
+    const j = a[i];
+    return db[j] + (db[j + 1] - db[j]) * frac[i];
+  }
+  let v = -Infinity;
+  for (let k = a[i]; k <= b[i]; k++) if (db[k] > v) v = db[k];
+  return v;
+}
+
 /** 音名の番号（ド=0 … シ=11）→ 時計の何時の向きか。12個の音名が、文字盤の12の時刻にちょうど重なる（主音が12時） */
 export function clockOf(pitchClass) {
   return hourOf(pitchClass);
@@ -175,6 +217,12 @@ export class KouhaiView {
     this.size = 0; // 円の直径（画素）
     this.sizeCss = 0; // 円の直径（CSS の px）
     this.orbs = [0, 1, 2].map(() => ({ turn: null, alpha: 0, trail: [] }));
+    this.voiceColors = null; // カノンのときだけ、3つの声を色分けする（[第1声, 第2声, 第3声] の色）
+  }
+
+  /** 3つの光を色分けする（カノンの3つの声）。null で、ふだんの「朱色の光と、淡い2つの光」に戻す */
+  setVoiceColors(list) {
+    this.voiceColors = list ? list.map((c) => parseColor(c)) : null;
   }
 
   setPalette(lut, colors) {
@@ -191,6 +239,11 @@ export class KouhaiView {
     if (Number.isFinite(minDb)) this.opts.minDb = minDb;
     if (Number.isFinite(maxDb)) this.opts.maxDb = maxDb;
     this.map = armBinMap(this.binHz, this.bins);
+    // 速い観察窓の表と、光ごとの混ぜ方（主音・基準の高さが変わると光の受け持つ高さが変わるので、ここで作り直す）
+    const sr = this.binHz * this.bins * 2;
+    this.fastMap = armBinMap(sr / KOUHAI_FAST_FFT_SIZE, KOUHAI_FAST_FFT_SIZE / 2);
+    this.weight = new Float32Array(ARM_COUNT);
+    for (let i = 0; i < ARM_COUNT; i++) this.weight[i] = fastWeight(turnToFreq(((i + 0.5) / ARM_COUNT) * KOUHAI_OCTAVES));
   }
 
   /** 画面の大きさに合わせる。円の直径（CSS の px）を返す。隠れているときは何もしない */
@@ -292,9 +345,10 @@ export class KouhaiView {
    * 1コマ描く。
    * @param {Float32Array} db 高さごとの大きさ [dB]（AnalyserNode と同じ形）
    * @param {Array<number|null>} voices 3つの光の高さ（MIDI 番号。小数でもよい）。null は「光なし」
-   * @param {{dt?:number, still?:boolean, bass?:number|null}} o dt は前のコマからのミリ秒。still は止まっているときの描き直し
+   * @param {{dt?:number, still?:boolean, bass?:number|null, fast?:Float32Array|null}} o dt は前のコマからのミリ秒。still は止まっているときの描き直し。
+   *   fast は速い観察窓（KOUHAI_FAST_FFT_SIZE 点）の dB の並び。あれば高い音の光をこちらで描く
    */
-  draw(db, voices = [], { dt = 16, still = false, bass = null } = {}) {
+  draw(db, voices = [], { dt = 16, still = false, bass = null, fast = null } = {}) {
     if (!this.w || !this.lut || !this.map) return;
     const ctx = this.ctx;
     // 前のコマを少しずつ地の色へ戻す（残像）。止まっているときは、きれいに描き直す
@@ -302,30 +356,17 @@ export class KouhaiView {
     ctx.drawImage(this.base, 0, 0);
     ctx.globalAlpha = 1;
     if (still) for (const o of this.orbs) o.trail.length = 0;
-    this.drawArms(db);
+    this.drawArms(db, fast);
     if (bass !== null && bass !== undefined) this.drawBass(bass);
     this.drawOrbs(voices, still ? 1e4 : dt);
   }
 
-  drawArms(db) {
+  drawArms(db, fast = null) {
     const { ctx, cx, cy, lut, dpr } = this;
-    const { mode, a, b, frac } = this.map;
     const { minDb, maxDb } = this.opts;
     const span = maxDb - minDb;
     const level = this.level || (this.level = new Float32Array(ARM_COUNT));
-    let top = -Infinity;
-    for (let i = 0; i < ARM_COUNT; i++) {
-      let v;
-      if (mode[i] === 0) {
-        const j = a[i];
-        v = db[j] + (db[j + 1] - db[j]) * frac[i];
-      } else {
-        v = -Infinity;
-        for (let k = a[i]; k <= b[i]; k++) if (db[k] > v) v = db[k];
-      }
-      level[i] = v;
-      if (v > top) top = v;
-    }
+    const top = armLevels(db, fast, { slow: this.map, fast: this.fastMap, weight: this.weight }, level);
     // 色は「本当の大きさ」（スペクトログラムと同じ目盛り）、長さは「今いちばん強い成分から何 dB 下か」。
     // こうすると、1つの高さの音は1本の鋭い光になり、まわりへのにじみ（FFT の漏れ）は短く描かれる。
     // 静かなときは基準を下げすぎない（雑音が長い光にならないように）
@@ -388,9 +429,10 @@ export class KouhaiView {
       const y = cy + p.y;
       o.trail.push(x, y);
       if (o.trail.length > TRAIL * 2) o.trail.splice(0, 2);
-      const strength = ORB_STRENGTH[v] * o.alpha;
+      const color = this.voiceColors ? this.voiceColors[v] : colors.mark;
+      const strength = (this.voiceColors ? 0.95 : ORB_STRENGTH[v]) * o.alpha;
       // 軌跡（古いほど淡く、細く）
-      ctx.strokeStyle = rgbStr(colors.mark);
+      ctx.strokeStyle = rgbStr(color);
       ctx.lineCap = 'round';
       for (let i = 2; i < o.trail.length; i += 2) {
         const age = i / o.trail.length;
@@ -409,7 +451,7 @@ export class KouhaiView {
       ctx.arc(x, y, r + 1.8 * dpr, 0, Math.PI * 2);
       ctx.fill();
       ctx.globalAlpha = strength;
-      ctx.fillStyle = rgbStr(colors.mark);
+      ctx.fillStyle = rgbStr(color);
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
@@ -426,9 +468,10 @@ export class KouhaiView {
    * @param {string} [o.footer] 下の帯の右に書く1行（音名・高さ・日時など）
    * @param {boolean} [o.bloom] 蓮が開いているか
    * @param {{display:string, body:string, mono:string}} [o.fonts] 文字の書体（CSS の --font-display など）
+   * @param {HTMLCanvasElement} [target] 描き込む板（動画で毎コマ描くときに使い回す）。なければ新しく作る
    * @returns {HTMLCanvasElement|null}
    */
-  exportImage({ note = '', en = '', footer = '', bloom = false, fonts = {} } = {}) {
+  exportImage({ note = '', en = '', footer = '', bloom = false, fonts = {} } = {}, target = null) {
     const d = Math.round(this.size);
     if (!d || !this.w) return null;
     const { colors } = this;
@@ -437,9 +480,10 @@ export class KouhaiView {
     const mono = fonts.mono || 'monospace';
     const pad = Math.round(d * 0.05);
     const band = Math.round(d * 0.14);
-    const out = document.createElement('canvas');
-    out.width = d + 2 * pad;
-    out.height = d + 2 * pad + band;
+    const out = target || document.createElement('canvas');
+    // 動画の板は、大きさが変わらないかぎり作り直さない（width を入れ直すと中身が消え、録画が乱れるため）
+    if (out.width !== d + 2 * pad) out.width = d + 2 * pad;
+    if (out.height !== d + 2 * pad + band) out.height = d + 2 * pad + band;
     const g = out.getContext('2d');
     g.fillStyle = rgbStr(colors.bg);
     g.fillRect(0, 0, out.width, out.height);

@@ -898,16 +898,23 @@ dialog::backdrop {
 }
 .kh-tools {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--sp-2);
 }
 .kh-tools .btn {
   flex-direction: column;
   gap: 2px;
   min-height: 60px;
-  padding: var(--sp-1);
-  font-size: var(--fs-sm);
+  padding: var(--sp-1) 2px;
+  font-size: var(--fs-xs);
   line-height: 1.3;
+  word-break: keep-all; /* 「ファイ／ル」のように、ことばの途中で折り返さない（折り返すのは <wbr> の所だけ） */
+  min-width: 0;
+}
+@media (max-width: 360px) {
+  .kh-tools {
+    gap: var(--sp-1);
+  }
 }
 .kh-tools .btn[aria-pressed="true"] {
   background: var(--accent-soft);
@@ -1130,4 +1137,126 @@ dialog::backdrop {
 }
 .tn-reset {
   justify-self: start;
+}
+
+/* ---------- カノンの3つの声の色（光背の光と、窓の印） ---------- */
+:root {
+  --voice-1: #ff8a65; /* 朱色（第1声） */
+  --voice-2: #62b6d9; /* 空色（第2声） */
+  --voice-3: #b394e6; /* 藤色（第3声） */
+}
+.kh-dot {
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  margin: 0 0.3em 0 0.1em;
+  border-radius: 50%;
+  vertical-align: 0.05em;
+}
+.kh-dot.v1 { background: var(--voice-1); }
+.kh-dot.v2 { background: var(--voice-2); }
+.kh-dot.v3 { background: var(--voice-3); }
+
+/* ---------- 録画中 ---------- */
+.kh-tools .btn#btn-record[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--danger, #e05a4f) 18%, transparent);
+  border-color: var(--danger, #e05a4f);
+}
+.kh-tools .btn#btn-record[aria-pressed="true"] svg {
+  color: var(--danger, #e05a4f);
+}
+
+/* ---------- 指で鳴らす：切り替えと鍵盤 ---------- */
+.kh-touch-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.kh-touch-opts[hidden],
+.kh-keys[hidden] {
+  display: none;
+}
+.kh-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: 36px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.kh-chip input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.kh-chip:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.kh-keys {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  grid-template-areas: "row row row" "down from up";
+  align-items: center;
+  gap: var(--sp-1) var(--sp-2);
+}
+.kh-key-row {
+  grid-area: row;
+}
+#key-down {
+  grid-area: down;
+}
+#key-up {
+  grid-area: up;
+}
+.kh-key-oct {
+  min-height: 36px;
+  font-size: var(--fs-lg, 1.2rem);
+}
+.kh-key-row {
+  display: grid;
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+  gap: 2px;
+  touch-action: none; /* 指をすべらせても画面が動かないように */
+  user-select: none;
+  -webkit-user-select: none;
+}
+.kh-key {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 96px;
+  padding-bottom: 6px;
+  border-radius: 0 0 6px 6px;
+  background: #e9e4d6;
+  color: #1b1d1b;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+}
+.kh-key.is-sharp {
+  background: #2a2d2a;
+  color: #b9b4a6;
+  font-size: 8px;
+  letter-spacing: -0.04em;
+  min-height: 64px;
+  align-self: start;
+}
+.kh-key.is-on {
+  background: var(--spec-mark);
+  color: #000;
+}
+.kh-key-from {
+  grid-area: from;
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  text-align: center;
 }
