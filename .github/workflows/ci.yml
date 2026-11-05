@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: 計算と判定のテスト
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 文法とオフライン用一覧の点検
+        run: node tools/check.mjs
+      - name: 単体テスト
+        run: npm test
+
+  e2e:
+    name: 画面の通しテスト（Chromium）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Playwright を入れる
+        run: |
+          npm i --no-save playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: claude.ai 用の1ファイル版を作る
+        run: node tools/build-artifact.mjs
+      - name: 画面の通しテスト（偽マイクに 440 Hz・指で鳴らす・カノン・残す・オフライン・1ファイル版）
+        run: node tests/e2e/run.mjs --shots e2e-shots
+      - name: 画面写真を保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: e2e-shots
+          if-no-files-found: ignore

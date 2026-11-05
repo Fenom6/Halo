@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "光背 Halo — 音の高さを、光の輪で観る",
+  "short_name": "光背",
+  "description": "音の高さを、光の輪で観る。12時がド、1周で1オクターブの螺旋に千本の光。歌の音程、和音の形、倍音が見える。触れて鳴らせる。サンプルはパッヘルベルのカノン。",
+  "lang": "ja",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#121513",
+  "theme_color": "#121513",
+  "categories": ["music", "education", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": "./en.html",
+  "name": "Halo — see pitch as a ring of light",
+  "short_name": "Halo",
+  "description": "See pitch as a ring of light. C at 12 o'clock, one octave per turn, a thousand rays. Sing in tune, see chord shapes and harmonics, play by touch. The sample is Pachelbel's Canon.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "./en.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "categories": ["music", "education", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
