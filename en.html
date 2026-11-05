@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en" data-theme="dark" class="black">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Halo — see pitch as a ring of light</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="See pitch as a ring of light. C at 12 o'clock, one octave per turn of the spiral, a thousand rays. See whether you sing in tune, the shape of chords, and harmonics. Play it by touch. The sample is Pachelbel's Canon.">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Halo">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="manifest" href="manifest-en.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=M+PLUS+1+Code:wght@400;500&family=Shippori+Mincho+B1:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/halo.css">
+</head>
+<body>
+<!-- HALO:BODY-START -->
+<a class="skip" href="#kh-main">Skip to content</a>
+<header class="kh-head">
+  <div class="kh-head-inner">
+    <h1 class="kh-mark"><span class="kh-kanji">Halo</span><span class="kh-sub">光背</span></h1>
+    <p class="head-status" id="head-status" aria-live="polite"><i class="live-dot" aria-hidden="true"></i><span id="head-status-text">Stopped</span></p>
+    <a class="kh-lang" href="./" lang="ja" hreflang="ja">日本語</a>
+    <button type="button" class="btn btn-icon-only kh-about-btn" id="btn-about" aria-label="How Halo works (reading it, physics, math, music, code)"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-info"></use></svg></button>
+  </div>
+</header>
+
+<main id="kh-main" class="kh-main" tabindex="-1">
+  <div class="kh-stage" id="kh-stage" data-touch="off">
+    <canvas id="cv-kouhai" class="kh-canvas" role="img" aria-label="Halo: pitch laid out on a spiral. C at 12 o'clock, a semitone per step clockwise, one octave per turn. The length and color of the rays show how strong each pitch is."></canvas>
+    <div class="kouhai-dial" id="kouhai-dial" aria-hidden="true">
+      <p class="kouhai-center"><span class="kouhai-note" id="kouhai-note" data-quiet="true">○</span><span class="kouhai-oct" id="kouhai-oct"></span></p>
+    </div>
+    <div class="bloom" id="bloom" role="status" hidden>
+      <svg class="bloom-lotus" viewBox="-50 -50 100 100" aria-hidden="true"></svg>
+      <p class="bloom-text"><span class="bloom-title">Canon</span><span class="bloom-line">The sound comes around.</span></p>
+    </div>
+    <div class="probe" id="probe" data-axis="none" hidden><span class="probe-line"></span><span class="probe-label" id="probe-label"></span></div>
+    <p class="kh-badge" id="kh-badge">Example</p>
+  </div>
+
+  <section class="kh-panel" aria-label="Current pitch and controls">
+    <div class="kh-read">
+      <div class="kh-read-top">
+        <p class="note-line"><span class="note-name" id="kh-note">—</span><span class="note-en" id="kh-en"></span></p>
+        <p class="readout-main kh-hz" id="kh-hz">Waiting for sound</p>
+      </div>
+      <div class="cents" id="kh-cents" data-off="true" aria-hidden="true"><i class="cents-zero"></i><i class="cents-needle" id="kh-needle"></i></div>
+      <p class="readout-sub" id="kh-sub">&nbsp;</p>
+    </div>
+
+    <div class="kh-go">
+      <button type="button" class="btn btn-primary btn-big" id="btn-mic"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-mic"></use></svg><span id="btn-mic-text">Microphone</span></button>
+      <button type="button" class="btn kh-stop" id="btn-stop" hidden><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-stop"></use></svg>Stop</button>
+    </div>
+    <div class="kh-tools">
+      <button type="button" class="btn btn-quiet" id="btn-sample"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-note"></use></svg>Canon</button>
+      <button type="button" class="btn btn-quiet" id="btn-touch" aria-pressed="false"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-touch"></use></svg>Touch</button>
+      <button type="button" class="btn btn-quiet" id="btn-file"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-file"></use></svg>File</button>
+      <button type="button" class="btn btn-quiet" id="btn-save"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-keep"></use></svg>Save</button>
+    </div>
+    <input type="file" id="file-input" accept="audio/*" hidden>
+    <p class="kh-error" id="mic-error" role="alert" hidden></p>
+    <p class="kh-note-box" id="kh-embedded" hidden>The microphone cannot be used here (inside Claude). Try "Canon", "Touch" or "File". To use the microphone, open the published Halo page in your browser.</p>
+
+    <p class="kh-caption" id="kh-caption">C is at 12 o'clock. Each step clockwise is a semitone, and one full turn is one octave higher (low notes inside). The length and color of each ray show how strong that pitch is.</p>
+    <p class="kh-privacy">Sound is processed only on this device. Nothing is recorded or sent. "Save" only makes a picture (PNG).</p>
+  </section>
+</main>
+
+<dialog class="sheet" id="dlg-canon" closedby="any" aria-labelledby="dlg-canon-h">
+  <div class="sheet-head">
+    <h2 id="dlg-canon-h">Pachelbel's Canon</h2>
+    <form method="dialog"><button class="btn btn-icon-only" value="" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-close"></use></svg></button></form>
+  </div>
+  <p class="sheet-lead">The opening of the Canon in D (around 1680), computed from the score on the spot — not a recording. Written more than 300 years ago, it is free for anyone to use.</p>
+  <p class="kh-canon-how">The bass repeats eight notes (D · A · B · F♯ · G · D · G · A). Above it, three voices sing the same melody, each starting two bars (8 beats) after the last. On the halo, three lights follow the three voices and a gold ring follows the bass.</p>
+  <fieldset class="kh-parts">
+    <legend>Voices to play (add them one at a time to hear the chase)</legend>
+    <label class="check"><input type="checkbox" name="part" value="bass" checked><span>Bass (the eight repeating notes)</span></label>
+    <label class="check"><input type="checkbox" name="part" value="0" checked><span>Voice 1 (the vermilion light)</span></label>
+    <label class="check"><input type="checkbox" name="part" value="1" checked><span>Voice 2 (enters 8 beats later)</span></label>
+    <label class="check"><input type="checkbox" name="part" value="2" checked><span>Voice 3 (enters 16 beats later)</span></label>
+  </fieldset>
+  <button type="button" class="btn btn-primary btn-big" id="canon-play"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-play"></use></svg>Play</button>
+</dialog>
+
+<dialog class="sheet sheet-tall kh-about" id="dlg-about" closedby="any" aria-labelledby="dlg-about-h">
+  <div class="sheet-head">
+    <h2 id="dlg-about-h">How Halo works</h2>
+    <form method="dialog"><button class="btn btn-icon-only" value="" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-close"></use></svg></button></form>
+  </div>
+  <div class="kh-about-body">
+    <p class="sheet-lead">In Japanese temples, the ring of light behind a Buddha statue is called a <em>kōhai</em> — a halo. This app arranges pitch on a ring of light.</p>
+
+    <section aria-labelledby="ab-read">
+      <h3 id="ab-read">Reading it</h3>
+      <dl class="kh-dl">
+        <dt>Direction</dt><dd>The note name. Like a clock face: <strong>C is at 12 o'clock</strong>, then one semitone per hour clockwise (C♯ at 1, D at 2 … A at 9, B at 11). The twelve notes fit exactly on the twelve hours.</dd>
+        <dt>Distance from center</dt><dd>The octave. Low notes are inside, high notes outside. <strong>One turn of the spiral is one octave</strong> (innermost: C2, about 65 Hz; after 7 turns, outermost: C9, about 8,400 Hz).</dd>
+        <dt>Length and color of rays</dt><dd>How strong that pitch is. A thousand rays reach out from the spiral.</dd>
+        <dt>Vermilion light</dt><dd>The pitch right now. Two faint lights follow the same path, each 0.8 s later.</dd>
+        <dt>Center</dt><dd>The current note name (○ when there is no clear pitch). Touch the picture to see the pitch at that spot.</dd>
+      </dl>
+    </section>
+
+    <section aria-labelledby="ab-phys">
+      <h3 id="ab-phys">Physics: pitch and harmonics</h3>
+      <p>Sound is air vibrating. How many times it vibrates per second is its <strong>frequency</strong> (in Hz, hertz); more vibrations sound higher. A vibrates 440 times a second. <strong>Twice that, 880, also sounds like A</strong> — one octave up. That is why the halo puts notes an octave apart in the same direction.</p>
+      <p>Voices and instruments also contain sounds at <strong>2×, 3×, 4× … the frequency (harmonics)</strong>. Play a single C with "Touch": 2× and 4× light up toward C, 3× toward G (7 o'clock) and 5× toward E (4 o'clock). C–E–G sounds good together because a single note already contains it.</p>
+      <p>Bells don't follow whole-number multiples, so their rays don't line up — that is their distinctive ring.</p>
+    </section>
+
+    <section aria-labelledby="ab-math">
+      <h3 id="ab-math">Math: the spiral</h3>
+      <p class="kh-formula">turn = log<sub>2</sub>(f ÷ 65.4)</p>
+      <dl class="kh-dl">
+        <dt>f</dt><dd>frequency of the sound [Hz]</dd>
+        <dt>65.4</dt><dd>frequency of the innermost C (C2) [Hz]</dd>
+        <dt>log<sub>2</sub></dt><dd>"how many times do you multiply 2 to get this number". When f doubles, the turn grows by exactly 1 (one turn = one octave)</dd>
+        <dt>whole part</dt><dd>which ring (0, 1, 2 … from the inside)</dd>
+        <dt>fractional part</dt><dd>the direction: 0.25 is a quarter turn = 3 o'clock</dd>
+      </dl>
+      <p>Example: A at 440 Hz gives log<sub>2</sub>(440 ÷ 65.4) ≈ <strong>2.75</strong> — two and three quarter turns, so <strong>9 o'clock</strong> on ring 3. A semitone is the twelfth root of 2 (about 1.0595×). Multiply twelve times and you get exactly 2, so twelve semitones make one turn.</p>
+    </section>
+
+    <section aria-labelledby="ab-canon">
+      <h3 id="ab-canon">Music: canon (a round)</h3>
+      <p>A canon is music where the same melody is sung again a little later by another voice, like "Row, Row, Row Your Boat". With the melody x(t) and the delay T:</p>
+      <p class="kh-formula">y(t) = x(t) + x(t − T) + x(t − 2T)</p>
+      <p>In Pachelbel's Canon T is two bars (8 beats). At every moment the three voices are singing <strong>different parts</strong> of the melody, yet they fit perfectly over the eight chords of the bass. The three lights chasing along the same path are exactly that "delayed overlap".</p>
+      <p>Sing the bass (D · A · B · F♯ · G · D · G · A) or the start of the melody (F♯ · E · D · C♯ · B · A · B · C♯) into the microphone, or play it by touch, and… Any starting note works — it listens to how many semitones each step moves.</p>
+    </section>
+
+    <section aria-labelledby="ab-ja">
+      <h3 id="ab-ja">Japanese words</h3>
+      <dl class="kh-dl">
+        <dt>光背 (kōhai)</dt><dd>"light-back": the halo behind a Buddha statue</dd>
+        <dt>千手 (senju)</dt><dd>"a thousand hands". The thousand rays come from the thousand-armed Kannon</dd>
+        <dt>蓮 (hasu)</dt><dd>lotus. It opens when all three voices are in</dd>
+        <dt>ド・レ・ミ</dt><dd>do, re, mi — how note names are taught in Japan (ド = C)</dd>
+      </dl>
+    </section>
+
+    <section aria-labelledby="ab-code">
+      <h3 id="ab-code">Code: how it is drawn</h3>
+      <ol class="kh-steps">
+        <li>An <strong>AnalyserNode</strong> (Web Audio API) splits the incoming sound with an FFT (fast Fourier transform) into 8,192 frequency bins (each about 2.9 Hz wide). Low notes sit inside the halo, and they need fine bins or the rays fan out and blur the chord shapes (the price: the rays move a little slower).</li>
+        <li>Each of the <strong>thousand rays</strong> knows in advance which bins it covers (<code>armBinMap</code>). Low rays interpolate between bins; high rays take the largest value in their range.</li>
+        <li>About 60 times a second, the length and color of every ray is computed and drawn. Rays are grouped into ten brightness buckets and drawn per bucket, which keeps it fast (<code>Path2D</code>).</li>
+        <li>About every 0.08 s the current pitch is measured (the YIN method, from how the wave repeats). The two faint lights read that history with a delay.</li>
+      </ol>
+      <p class="kh-files"><code>js/kouhai.js</code> drawing (spiral, rays) / <code>js/kouhai-stage.js</code> the halo component / <code>js/canon.js</code> the score and the listening / <code>js/main.js</code> this page / <code>js/i18n.js</code> Japanese ⇄ English</p>
+    </section>
+
+    <section aria-labelledby="ab-limit">
+      <h3 id="ab-limit">What it can and can't do</h3>
+      <ul class="kh-bullets">
+        <li>The center shows a note name only for sounds with a clear pitch (voice, instruments, whistling). For chords it shows the strongest component.</li>
+        <li>Notes below C2 (about 65 Hz) or above C9 (about 8,400 Hz) are off the spiral and not drawn.</li>
+        <li>Sound is only processed on this device. Nothing is recorded or sent.</li>
+        <li>On iPhone, "Canon" and "Touch" may be silent when the ring/silent switch is set to silent.</li>
+      </ul>
+    </section>
+  </div>
+</dialog>
+
+<div class="toast kh-toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<svg class="icon-defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="ic-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="ic-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v4h4M10 17.5a1.5 1.5 0 1 1-1.5-1.5H10v-5l4-1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="1.5" fill="currentColor"/></symbol>
+    <symbol id="ic-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="ic-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5Z" fill="currentColor"/></symbol>
+    <symbol id="ic-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v5.6M12 7.6v.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="ic-note" viewBox="0 0 24 24"><path d="M9 18.2V5.6l10-2v12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="6.6" cy="18.2" r="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16.6" cy="15.6" r="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="ic-touch" viewBox="0 0 24 24"><path d="M10 20.5l-3.4-4.3a1.4 1.4 0 0 1 2.1-1.8l1.3 1.3V8.6a1.4 1.4 0 0 1 2.8 0v4.6l3.9.7c1.2.2 2 1.3 1.8 2.5l-.7 4.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.2 8.6a4.2 4.2 0 0 1 8.4 0M4.6 8.6a6.8 6.8 0 0 1 13.6 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="ic-keep" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.8v.6M16.2 12h-.6M12 16.2v-.6M7.8 12h.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+<!-- HALO:BODY-END -->
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

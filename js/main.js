@@ -19,12 +19,13 @@ import { choosePitch, PitchSmoother } from './pitch.js';
 import { computeFeatures } from './features.js';
 import { SoundClassifier } from './classify.js';
 import { buildLut, readTokens } from './colormap.js';
-import { analyserLikeDb, noteInfo, freqToMidi, midiToFreq, NOTE_JA } from './dsp.js';
+import { analyserLikeDb, noteInfo, freqToMidi, midiToFreq } from './dsp.js';
 import { canonRound } from './synth.js';
 import { formatHz, formatCents } from './format.js';
 import { $, $$, h, toast, openDialog, onResize, saveFile } from './ui.js';
 import { prefs, applyTheme } from './prefs.js';
 import { isEmbedded } from './claude.js';
+import { LANG, L, noteName, clockText } from './i18n.js';
 
 const ANALYSIS_MS = 80;
 const UI_MS = 120;
@@ -37,22 +38,37 @@ const TOUCH_PARTIALS = [1, 0.5, 0.33, 0.25, 0.2]; // 指で鳴らす音の、1�
 const TOUCH_MAX_HZ = 16000; // これより高い成分は鳴らさない
 
 const CAPTION = {
-  idle: '12時がド。時計回りに半音ずつ進み、1周で1オクターブ高くなります（内側ほど低い音）。外へ伸びる光の長さと色が、その高さの強さです。',
-  mic: '朱色の光が、いまの高さ。淡い2つの光が、少し遅れて同じ道すじを追いかけます。歌うと、音程が半音のどちらにずれているかも見えます。',
-  file: '朱色の光が、いまの高さ。淡い2つの光が、少し遅れて同じ道すじを追いかけます。',
-  touch: '螺旋に触れると、いちばん近い半音の音が鳴ります。1つの音から、2倍・3倍…の光（倍音）も伸びます。何本かの指で触れると和音です。',
+  idle: L(
+    '12時がド。時計回りに半音ずつ進み、1周で1オクターブ高くなります（内側ほど低い音）。外へ伸びる光の長さと色が、その高さの強さです。',
+    "C is at 12 o'clock. Each step clockwise is a semitone, and one full turn is one octave higher (low notes inside). The length and color of each ray show how strong that pitch is.",
+  ),
+  mic: L(
+    '朱色の光が、いまの高さ。淡い2つの光が、少し遅れて同じ道すじを追いかけます。歌うと、音程が半音のどちらにずれているかも見えます。',
+    'The vermilion light is the pitch right now. Two faint lights follow the same path a little later. Sing, and you can see which way you are off the note.',
+  ),
+  file: L(
+    '朱色の光が、いまの高さ。淡い2つの光が、少し遅れて同じ道すじを追いかけます。',
+    'The vermilion light is the pitch right now. Two faint lights follow the same path a little later.',
+  ),
+  touch: L(
+    '螺旋に触れると、いちばん近い半音の音が鳴ります。1つの音から、2倍・3倍…の光（倍音）も伸びます。何本かの指で触れると和音です。',
+    'Touch the spiral to play the nearest semitone. One note also lights up 2×, 3×… (its harmonics). Touch with several fingers for a chord.',
+  ),
 };
 const STATUS = {
-  mic: () => 'マイクで観ています',
-  file: (name) => `ファイル：${name}`,
-  sample: (name) => `サンプル：${name}`,
-  touch: () => '指で鳴らしています',
+  mic: () => L('マイクで観ています', 'Listening'),
+  file: (name) => L(`ファイル：${name}`, name),
+  sample: (name) => L(`サンプル：${name}`, name),
+  touch: () => L('指で鳴らしています', 'Touch'),
 };
 /** カノンを鳴らしているあいだ、絵の下に出す「観るところ」 */
-const CANON_LOOK =
-  '3つの光が、同じ旋律を2小節（8拍）ずつ遅れて追いかけます。金の輪は低音（8つの音のくり返し）。3つの声がそろうと……。';
+const CANON_LOOK = L(
+  '3つの光が、同じ旋律を2小節（8拍）ずつ遅れて追いかけます。金の輪は低音（8つの音のくり返し）。3つの声がそろうと……。',
+  'Three lights chase the same melody, each two bars (8 beats) behind. The gold ring is the bass (eight notes, over and over). When all three voices are in…',
+);
 
-applyTheme();
+// 英語版（en.html）は、いつも黒い地（<html data-theme="dark" class="black">）。日本語版は設定どおり
+if (LANG !== 'en') applyTheme();
 
 const engine = new AudioEngine({ fftSize: KOUHAI_FFT_SIZE });
 engine.keepAwake = prefs.get('keepAwake');
@@ -200,9 +216,12 @@ function renderReadouts() {
     el.readNote.textContent = '—';
     el.readEn.textContent = '';
     const ch = chordAt(EXAMPLE_BEAT);
-    el.readHz.textContent = '例：カノン';
+    el.readHz.textContent = L('例：カノン', 'Example: Canon');
     el.cents.dataset.off = 'true';
-    setSub(`3つの声がそろった ${ch.name} の和音。`, ch.pcs.map((pc) => `${NOTE_JA[pc]}（${clockOf(pc)}時）`).join('・'));
+    setSub(
+      L(`3つの声がそろった ${ch.name} の和音。`, `All three voices: a ${ch.name} chord.`),
+      ch.pcs.map((pc) => `${noteName(pc)}${L('（', '\u00a0(')}${clockText(clockOf(pc))}${L('）', ')')}`).join(L('・', ' · ')),
+    );
     return;
   }
   if (engine.active && (stalled || deadMic)) {
@@ -210,28 +229,36 @@ function renderReadouts() {
     stage.setNote(null);
     el.readNote.textContent = '—';
     el.readEn.textContent = '';
-    el.readHz.textContent = stalled ? '音が届いていません' : 'マイクの音が届いていません';
+    el.readHz.textContent = stalled ? L('音が届いていません', 'No sound is coming in') : L('マイクの音が届いていません', 'No sound from the microphone');
     el.cents.dataset.off = 'true';
-    setSub('高さは、音がまた届いたら出します。', '');
+    setSub(L('高さは、音がまた届いたら出します。', 'The pitch will show again when sound comes back.'), '');
     return;
   }
   const p = snap && snap.pitch;
   const n = p ? noteInfo(p.hz) : null;
   stage.setNote(n);
   if (n) {
-    el.readNote.textContent = n.ja;
+    el.readNote.textContent = noteName(n.pitchClass);
     el.readEn.textContent = n.en;
     el.readHz.textContent = formatHz(p.hz, { digits: p.hz < 1000 ? 1 : 2 });
     el.cents.dataset.off = 'false';
     el.needle.style.left = `${50 + Math.max(-50, Math.min(50, n.cents))}%`;
     setSub(
-      p.kind === 'peak' ? `いちばん強い成分・${formatCents(n.cents)} セント` : `${formatCents(n.cents)} セント（半音の 1/100）`,
-      `${clockOf(n.pitchClass)}時の向き・${ringOf(n.midi)}周目`,
+      p.kind === 'peak'
+        ? L(`いちばん強い成分・${formatCents(n.cents)} セント`, `strongest component · ${formatCents(n.cents)} cents`)
+        : L(`${formatCents(n.cents)} セント（半音の 1/100）`, `${formatCents(n.cents)} cents (1/100 of a semitone)`),
+      L(`${clockOf(n.pitchClass)}時の向き・${ringOf(n.midi)}周目`, `${clockText(clockOf(n.pitchClass))} · ring ${ringOf(n.midi)}`),
     );
   } else {
     el.readNote.textContent = '—';
     el.readEn.textContent = '';
-    el.readHz.textContent = !snap ? (engine.active ? '聞いています' : '音を待っています') : snap.cls.id === 'silence' ? '静か' : '高さがはっきりしない音';
+    el.readHz.textContent = !snap
+      ? engine.active
+        ? L('聞いています', 'Listening…')
+        : L('音を待っています', 'Waiting for sound')
+      : snap.cls.id === 'silence'
+        ? L('静か', 'Quiet')
+        : L('高さがはっきりしない音', 'No clear pitch');
     el.cents.dataset.off = 'true';
     setSub('　', '');
   }
@@ -243,7 +270,7 @@ const subParts = [h('span', { class: 'kh-chunk' }), h('span', { class: 'kh-chunk
 el.readSub.replaceChildren(...subParts);
 function setSub(a, b) {
   // 区切りの「・」は前のまとまりの終わりに付ける（行の頭に「・」が来ないように。文の終わり「。」のあとには付けない）
-  const first = b && !a.endsWith('。') ? `${a}・` : a;
+  const first = b && !/[。.]$/.test(a) ? `${a}${L('・', ' · ')}` : a;
   if (subParts[0].textContent !== first) subParts[0].textContent = first;
   if (subParts[1].textContent !== b) subParts[1].textContent = b;
   subParts[1].hidden = !b;
@@ -256,7 +283,7 @@ let stalled = false;
 let deadMic = false;
 function paintHead() {
   const off = stalled || deadMic;
-  el.headText.textContent = stalled ? '音が届いていません' : deadMic ? 'マイクの音が届いていません' : headText;
+  el.headText.textContent = stalled ? L('音が届いていません', 'No sound is coming in') : deadMic ? L('マイクの音が届いていません', 'No sound from the microphone') : headText;
   el.head.dataset.live = headLive && !off ? 'on' : 'off';
   el.head.dataset.stalled = off ? 'on' : 'off';
 }
@@ -280,14 +307,14 @@ function setDead(v) {
 
 function setCaption() {
   const k = engine.kind;
-  if (k === 'sample' && lookHint) el.caption.textContent = `観るところ：${lookHint}`;
+  if (k === 'sample' && lookHint) el.caption.textContent = L(`観るところ：${lookHint}`, `What to watch: ${lookHint}`);
   else if (k === 'touch') el.caption.textContent = touchCaption();
   else el.caption.textContent = CAPTION[k] || CAPTION.idle;
 }
 
 function updateButtons() {
   const k = engine.kind;
-  el.btnMicText.textContent = k === 'mic' ? 'マイクを止める' : 'マイクで観る';
+  el.btnMicText.textContent = k === 'mic' ? L('マイクを止める', 'Stop microphone') : L('マイクで観る', 'Microphone');
   el.btnMic.classList.toggle('btn-primary', k !== 'mic');
   el.btnStop.hidden = !(k === 'file' || k === 'sample');
   el.btnTouch.setAttribute('aria-pressed', String(k === 'touch'));
@@ -337,7 +364,7 @@ function onStopped() {
   stalled = false;
   deadMic = false;
   silentSince = 0;
-  setStatus('止まっています', false);
+  setStatus(L('止まっています', 'Stopped'), false);
   setCaption();
   updateButtons();
   redrawStill();
@@ -397,7 +424,7 @@ function chosenParts() {
 $('#canon-play').addEventListener('click', () => {
   const parts = chosenParts();
   if (!parts.bass && !parts.voices.some(Boolean)) {
-    toast('鳴らす声を1つ以上えらんでください');
+    toast(L('鳴らす声を1つ以上えらんでください', 'Choose at least one voice'));
     return;
   }
   $('#dlg-canon').close();
@@ -417,7 +444,7 @@ async function playCanon(parts) {
     const buf = await engine.bufferFrom(samples, sr);
     pendingScore = canonScore(parts);
     lookHint = CANON_LOOK;
-    await engine.playBuffer(buf, { kind: 'sample', name: 'カノン' });
+    await engine.playBuffer(buf, { kind: 'sample', name: L('カノン', 'Canon') });
   } catch (e) {
     showError(e.message || String(e));
   }
@@ -517,9 +544,9 @@ function touchCaption() {
     .sort((a, b) => a - b)
     .map((m) => {
       const n = noteInfo(midiToFreq(m));
-      return `${n.ja}${n.octave}（${clockOf(n.pitchClass)}時）`;
+      return L(`${n.ja}${n.octave}（${clockOf(n.pitchClass)}時）`, `${n.en} (${clockText(clockOf(n.pitchClass))})`);
     });
-  return `鳴らしている音：${names.join('・')}`;
+  return L(`鳴らしている音：${names.join('・')}`, `Playing: ${names.join(' · ')}`);
 }
 
 // ---------- 絵に触れて調べる（指で鳴らすときは、その音が鳴る） ----------
@@ -586,13 +613,14 @@ el.btnSave.addEventListener('click', async () => {
   const when = stamp();
   const p = snap && snap.pitch;
   const n = p && !showingExample ? noteInfo(p.hz) : null;
-  const what = showingExample ? '例：カノン' : n ? `${n.ja} ${n.en}・${formatHz(p.hz, { digits: p.hz < 1000 ? 1 : 2 })}` : '';
+  const hzText = p ? formatHz(p.hz, { digits: p.hz < 1000 ? 1 : 2 }) : '';
+  const what = showingExample ? L('例：カノン', 'Example: Canon') : n ? L(`${n.ja} ${n.en}・${hzText}`, `${n.en} · ${hzText}`) : '';
   const footer = [what, when.text].filter(Boolean).join('　');
   el.btnSave.disabled = true;
   try {
     const canvas = await stage.exportImage(footer);
     if (!canvas) {
-      toast('まだ絵がありません');
+      toast(L('まだ絵がありません', 'Nothing to save yet'));
       return;
     }
     const blob = await new Promise((ok) => canvas.toBlob(ok, 'image/png'));
@@ -602,16 +630,18 @@ el.btnSave.addEventListener('click', async () => {
     const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
     if (!isEmbedded && file && navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: '光背' });
+        await navigator.share({ files: [file], title: L('光背', 'Halo') });
         return;
       } catch (err) {
         if (err && err.name === 'AbortError') return;
       }
     }
     const r = await saveFile(name, blob, 'image/png');
-    toast(r === 'saved' ? '光背の絵を保存しました' : r === 'declined' ? '保存をやめました' : '保存できませんでした');
+    toast(
+      r === 'saved' ? L('光背の絵を保存しました', 'Saved the picture') : r === 'declined' ? L('保存をやめました', 'Not saved') : L('保存できませんでした', 'Could not save'),
+    );
   } catch {
-    toast('絵を作れませんでした');
+    toast(L('絵を作れませんでした', 'Could not make the picture'));
   } finally {
     el.btnSave.disabled = false;
   }
@@ -663,14 +693,15 @@ new MutationObserver(applyPalette).observe(document.documentElement, { attribute
 // 表示の明るさは Claude が決めるので、切り替えは出さない
 if (isEmbedded) {
   el.note.hidden = false;
-  $('#ab-view-set').hidden = true;
+  const themeSet = $('#ab-view-set');
+  if (themeSet) themeSet.hidden = true;
 }
 
 // 始めの状態
 stage.resize();
 applyPalette();
 updateButtons();
-setStatus('止まっています', false);
+setStatus(L('止まっています', 'Stopped'), false);
 setCaption();
 renderExample();
 

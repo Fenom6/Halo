@@ -11,7 +11,8 @@
  *
  * 朱色の光は「今の高さ」。2つの淡い光が、同じ道すじを少し遅れて追いかけます（カノン＝輪唱）。
  */
-import { midiToFreq, freqToMidi, NOTE_JA } from './dsp.js';
+import { midiToFreq, freqToMidi } from './dsp.js';
+import { L, noteName } from './i18n.js';
 import { parseColor } from './colormap.js';
 
 export const ARM_COUNT = 1000; // 千手観音の「千」
@@ -418,7 +419,7 @@ export class KouhaiView {
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     // 12の音名（12時がド。♯ の付く音は小さな点）
-    NOTE_JA.forEach((name, k) => {
+    Array.from({ length: 12 }, (_, k) => noteName(k)).forEach((name, k) => {
       const ang = -Math.PI / 2 + (k * Math.PI) / 6;
       const sharp = name.includes('♯');
       g.fillStyle = rgbStr(k === 0 ? colors.ink : colors.muted, sharp ? 0.7 : 1);
@@ -453,15 +454,15 @@ export class KouhaiView {
       g.fill();
       g.fillStyle = rgbStr(colors.ink);
       g.font = `800 ${Math.round(d * 0.066)}px ${display}`;
-      spacedText(g, 'カノン', ox, oy - d * 0.03, d * 0.014);
+      spacedText(g, L('カノン', 'Canon'), ox, oy - d * 0.03, d * 0.014);
       g.fillStyle = rgbStr(colors.muted);
       g.font = `${Math.round(d * 0.036)}px ${body}`;
-      g.fillText('響きは、巡る。', ox, oy + d * 0.05);
+      g.fillText(L('響きは、巡る。', 'The sound comes around.'), ox, oy + d * 0.05);
     } else {
       // まん中（頭光）の音名
       g.fillStyle = note ? rgbStr(colors.ink) : rgbStr(colors.muted, 0.6);
       g.font = `800 ${Math.round(d * 0.07)}px ${display}`;
-      g.fillText(note || '観', ox, en ? oy - d * 0.018 : oy);
+      g.fillText(note || L('観', '○'), ox, en ? oy - d * 0.018 : oy);
       if (en) {
         g.fillStyle = rgbStr(colors.muted);
         g.font = `${Math.round(d * 0.034)}px ${mono}`;
@@ -476,11 +477,12 @@ export class KouhaiView {
     g.textAlign = 'left';
     g.fillStyle = rgbStr(colors.ink);
     g.font = `800 ${Math.round(band * 0.36)}px ${display}`;
-    g.fillText('光背', pad, by + band / 2);
-    const titleW = g.measureText('光背').width;
+    const title = L('光背', 'Halo');
+    g.fillText(title, pad, by + band / 2);
+    const titleW = g.measureText(title).width;
     g.fillStyle = rgbStr(colors.muted);
     g.font = `${Math.round(band * 0.2)}px ${body}`;
-    g.fillText('Halo', pad + titleW + band * 0.15, by + band / 2 + band * 0.04);
+    g.fillText(L('Halo', 'kōhai'), pad + titleW + band * 0.15, by + band / 2 + band * 0.04);
     if (footer) {
       g.textAlign = 'right';
       g.font = `${Math.round(band * 0.22)}px ${body}`;

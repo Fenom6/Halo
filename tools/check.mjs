@@ -47,7 +47,7 @@ for (const f of shell) {
   }
 }
 
-const PAGES = ['index.html'];
+const PAGES = ['index.html', 'en.html'];
 for (const page of PAGES) {
   if (!shell.includes(page)) fail(`sw.js の SHELL に ${page} がありません`);
   const html = await readFile(page, 'utf8');
@@ -55,7 +55,7 @@ for (const page of PAGES) {
   for (const ref of refs) if (!shell.includes(ref)) fail(`${page} が読み込む ${ref} が、sw.js の SHELL にありません（オフラインで欠けます）`);
 }
 
-for (const manifest of ['manifest.webmanifest']) {
+for (const manifest of ['manifest.webmanifest', 'manifest-en.webmanifest']) {
   const m = JSON.parse(await readFile(manifest, 'utf8'));
   for (const ic of m.icons || []) {
     try {

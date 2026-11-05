@@ -9,6 +9,7 @@
  *
  * Web Audio API はブラウザに入っている「音の配線キット」。部品（ノード）をつないで音を流す。
  */
+import { L } from './i18n.js';
 
 /**
  * 音の「写しとり係」（AudioWorklet）。ブラウザの音の係（オーディオスレッド）の中で動き、
@@ -67,16 +68,22 @@ function micError(e) {
   if (name === 'NotAllowedError' || name === 'SecurityError') {
     return new KannonAudioError(
       'denied',
-      'マイクの使用が許可されませんでした。ブラウザの設定でこのページのマイクを「許可」にすると使えます。表示している場所によってはマイクが使えないこともあります。そのときは「ファイル」か「サンプル」で試せます。',
+      L(
+        'マイクの使用が許可されませんでした。ブラウザの設定でこのページのマイクを「許可」にすると使えます。表示している場所によってはマイクが使えないこともあります。そのときは「ファイル」か「カノン」で試せます。',
+        'Microphone access was not allowed. Allow the microphone for this page in your browser settings. Some places cannot use the microphone at all; then try "File" or "Canon".',
+      ),
     );
   }
   if (name === 'NotFoundError' || name === 'OverconstrainedError') {
-    return new KannonAudioError('nodevice', 'マイクが見つかりませんでした。マイクのある端末で開いてください。');
+    return new KannonAudioError('nodevice', L('マイクが見つかりませんでした。マイクのある端末で開いてください。', 'No microphone was found. Open this page on a device with a microphone.'));
   }
   if (name === 'NotReadableError' || name === 'AbortError') {
-    return new KannonAudioError('busy', 'マイクを別のアプリが使っているようです。通話や録音のアプリを閉じてから、もう一度試してください。');
+    return new KannonAudioError(
+      'busy',
+      L('マイクを別のアプリが使っているようです。通話や録音のアプリを閉じてから、もう一度試してください。', 'Another app seems to be using the microphone. Close call or recording apps and try again.'),
+    );
   }
-  return new KannonAudioError('unknown', `マイクを開けませんでした（${name || '不明なエラー'}）。`);
+  return new KannonAudioError('unknown', L(`マイクを開けませんでした（${name || '不明なエラー'}）。`, `Could not open the microphone (${name || 'unknown error'}).`));
 }
 
 export class AudioEngine extends EventTarget {
@@ -153,7 +160,7 @@ export class AudioEngine extends EventTarget {
   async ensure() {
     if (!this.ctx) {
       const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) throw new KannonAudioError('unsupported', 'このブラウザは Web Audio API に対応していません。');
+      if (!AC) throw new KannonAudioError('unsupported', L('このブラウザは Web Audio API に対応していません。', 'This browser does not support the Web Audio API.'));
       this.ctx = new AC({ latencyHint: 'interactive' });
       this.input = this.ctx.createGain();
       this.analyser = this.ctx.createAnalyser();
@@ -212,10 +219,10 @@ export class AudioEngine extends EventTarget {
   /** マイクで観る */
   async startMic() {
     if (!window.isSecureContext) {
-      throw new KannonAudioError('insecure', 'マイクは https のページでしか使えません。');
+      throw new KannonAudioError('insecure', L('マイクは https のページでしか使えません。', 'The microphone only works on https pages.'));
     }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      throw new KannonAudioError('unsupported', 'このブラウザはマイクの入力に対応していません。');
+      throw new KannonAudioError('unsupported', L('このブラウザはマイクの入力に対応していません。', 'This browser does not support microphone input.'));
     }
     const ctxReady = this.ensure(); // ボタンを押した直後に音の部品を起こしておく
     let stream;
@@ -239,7 +246,7 @@ export class AudioEngine extends EventTarget {
     this.mediaSource = this.ctx.createMediaStreamSource(stream);
     this.mediaSource.connect(this.input);
     this.kind = 'mic';
-    this.sourceName = 'マイク';
+    this.sourceName = L('マイク', 'Microphone');
     const track = stream.getAudioTracks()[0];
     if (track) track.addEventListener('ended', () => this.stop());
     this.afterStart();
@@ -275,7 +282,7 @@ export class AudioEngine extends EventTarget {
    * 指で鳴らす音の入口（光背の「指で鳴らす」）。ほかの音の入口を止めて、kind を 'touch' にする。
    * 鳴らす音は tone(…, { observe: true }) で作る（スピーカーと観察窓の両方へ流れるので、光背に映る）。
    */
-  async startTouch(name = '指で鳴らす') {
+  async startTouch(name = L('指で鳴らす', 'Touch')) {
     await this.ensure();
     this.stopSources();
     this.kind = 'touch';
@@ -305,7 +312,7 @@ export class AudioEngine extends EventTarget {
     try {
       return await this.ctx.decodeAudioData(data);
     } catch {
-      throw new KannonAudioError('decode', 'この音声ファイルは読み込めませんでした。mp3・m4a・wav などの形式を試してください。');
+      throw new KannonAudioError('decode', L('この音声ファイルは読み込めませんでした。mp3・m4a・wav などの形式を試してください。', 'Could not read this audio file. Try mp3, m4a or wav.'));
     }
   }
 

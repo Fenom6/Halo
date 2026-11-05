@@ -1,16 +1,18 @@
 /**
- * sw.js — Service Worker：一度開けば、電波のない場所でも光背を開けるようにする係
+ * sw.js — Service Worker：一度開けば、電波のない場所でも光背（日本語版・英語版）を開けるようにする係
  *
  * アプリの部品（HTML・CSS・JS・アイコン）を端末にしまっておき、
  * ネットにつながらないときは、しまっておいたものを使う。
  * 部品を変えたら VERSION の数字を上げること（古いしまい物を入れかえるため）。
  */
-const VERSION = 'halo-1.0.0';
+const VERSION = 'halo-1.1.0';
 
 const SHELL = [
   './',
   'index.html',
   'manifest.webmanifest',
+  'en.html',
+  'manifest-en.webmanifest',
   'css/halo.css',
   'icons/icon.svg',
   'icons/icon-192.png',
@@ -23,6 +25,7 @@ const SHELL = [
   'js/dsp.js',
   'js/features.js',
   'js/format.js',
+  'js/i18n.js',
   'js/kouhai-stage.js',
   'js/kouhai.js',
   'js/main.js',

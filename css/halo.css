@@ -1092,3 +1092,27 @@ dialog::backdrop {
   display: flex;
   gap: var(--sp-2);
 }
+
+/* ---------- ことばの切り替え（日本語 ⇄ English） ---------- */
+.kh-lang {
+  flex: none;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-decoration: none;
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+/* ---------- 英語版（en.html）：黒い地。暗い表示の色をもとに、地だけをまっ黒にする ---------- */
+:root.black {
+  --paper: #000000;
+  --surface: #0b0c0b;
+  --line: #222622;
+  --line-strong: #343a35;
+  --scope-bg: #000000;
+  --spec-0: #000000;
+  --scope-grid: #1b1f1c;
+  --accent-soft: #14302a;
+  color-scheme: dark;
+}

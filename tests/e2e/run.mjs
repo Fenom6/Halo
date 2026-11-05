@@ -285,6 +285,37 @@ try {
     }
   });
 
+  await check('英語版（en.html）：端末が明るい表示でも黒い地。音名は C D E、マイクで「A」と 9 o\'clock・ring 3', async () => {
+    expect((await page.getAttribute('.kh-lang', 'href')) === 'en.html', '日本語版に English の入口がない');
+    await page.goto(`http://localhost:${PORT}/en.html`);
+    await page.waitForFunction(() => document.querySelector('#kh-hz').textContent.includes('Example'), null, { timeout: 10000 });
+    const bg = await page.evaluate(() => {
+      const d = document.querySelector('#cv-kouhai').getContext('2d').getImageData(2, 2, 1, 1).data;
+      return [d[0], d[1], d[2], getComputedStyle(document.body).backgroundColor];
+    });
+    expect(bg[0] + bg[1] + bg[2] === 0 && bg[3] === 'rgb(0, 0, 0)', `黒い地ではない（${bg.join(', ')}）`);
+    const labels = await page.locator('#kouhai-dial .kouhai-pc').allInnerTexts();
+    expect(labels[0] === 'C' && labels.includes('A'), `音名が ${labels.join(' ')}`);
+    expect((await text('#btn-mic-text')) === 'Microphone', await text('#btn-mic-text'));
+    await page.click('#btn-mic');
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'A', null, { timeout: 10000 });
+    await page.waitForTimeout(1000);
+    expect((await text('#kh-en')) === 'A4', await text('#kh-en'));
+    expect((await text('#kh-sub')).includes("9\u00a0o'clock · ring 3"), await text('#kh-sub'));
+    expect((await text('#head-status-text')) === 'Listening', await text('#head-status-text'));
+    await shot('k12-english');
+    await page.click('#btn-mic');
+    await page.click('#btn-sample');
+    await page.waitForSelector('#dlg-canon[open]');
+    expect((await text('#dlg-canon-h')) === "Pachelbel's Canon", await text('#dlg-canon-h'));
+    await page.keyboard.press('Escape');
+    const jp = await page.evaluate(() => document.body.innerText.match(/[\u3040-\u30ff\u4e00-\u9fff][\u3040-\u30ff\u4e00-\u9fff・]*/g) || []);
+    const allowed = new Set(['光背', '日本語', '千手', '蓮', 'ド・レ・ミ', 'ド']);
+    const left = jp.filter((w) => !allowed.has(w));
+    expect(!left.length, `英語版に日本語が残っている：${left.join(' ')}`);
+    expect((await page.getAttribute('.kh-lang', 'href')) === './', '英語版に 日本語 の入口がない');
+  });
+
   await check('エラーが1つも出ていない', async () => {
     expect(errors.length === 0, errors.join(' / '));
   });

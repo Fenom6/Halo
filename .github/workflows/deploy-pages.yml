@@ -26,7 +26,7 @@ jobs:
       - name: 公開するファイルだけを集める
         run: |
           mkdir -p _site
-          cp -r index.html manifest.webmanifest sw.js css js icons _site/
+          cp -r index.html en.html manifest.webmanifest manifest-en.webmanifest sw.js css js icons _site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

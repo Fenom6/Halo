@@ -135,3 +135,26 @@ test('ホーム画面に置ける：光背 Halo の説明書き（マニフェ�
   assert.match(html, /<script type="module" src="js\/main\.js"><\/script>/);
   assert.ok(!/観音|Kannon/.test(html), '観音のアプリへの言及が残っている（Halo は単体）');
 });
+
+test('英語版（en.html）：黒い地・英語・同じ部品。日本語版とたがいに行き来できる', async () => {
+  const en = await read('en.html');
+  assert.match(en, /<html lang="en" data-theme="dark" class="black">/, '英語・暗い表示・黒い地');
+  assert.match(en, /<link rel="manifest" href="manifest-en\.webmanifest">/);
+  assert.match(en, /<script type="module" src="js\/main\.js"><\/script>/, '同じ係（main.js）で動く');
+  // 日本語版にある部品（id）は、英語版にもある（表示の明るさの切り替えだけは、英語版はいつも黒なので無い）
+  const ids = (h) => new Set([...h.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]));
+  const jaIds = ids(html);
+  const enIds = ids(en);
+  for (const id of jaIds) if (!['ab-view-set', 'ab-view', 'ab-en'].includes(id)) assert.ok(enIds.has(id), `英語版に #${id} がない`);
+  assert.match(html, /<a class="kh-lang" href="en\.html"/, '日本語版から英語版へ');
+  assert.match(en, /<a class="kh-lang" href="\.\/"/, '英語版から日本語版へ');
+  // 本文の日本語は、ロゴの「光背」・「日本語」の入口・日本語のことばの説明だけ
+  const body = en.slice(en.indexOf('<body>')).replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, ' ');
+  const jp = body.match(/[\u3040-\u30ff\u4e00-\u9fff][\u3040-\u30ff\u4e00-\u9fff・]*/g) || [];
+  const allowed = new Set(['光背', '日本語', '千手', '蓮', 'ド・レ・ミ', 'ド']);
+  assert.deepEqual(jp.filter((w) => !allowed.has(w)), [], '英語版に、訳していない日本語が残っている');
+  const m = JSON.parse(await read('manifest-en.webmanifest'));
+  assert.equal(m.lang, 'en');
+  assert.equal(m.start_url, './en.html');
+  assert.equal(m.background_color, '#000000');
+});

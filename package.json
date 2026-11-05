@@ -1,6 +1,6 @@
 {
   "name": "halo",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "光背 Halo — 音の高さを、光の輪で観る。12時がド・1周で1オクターブの螺旋に千本の光。マイク・指で鳴らす・パッヘルベルのカノン。",
   "type": "module",
