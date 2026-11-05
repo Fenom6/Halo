@@ -1,16 +1,15 @@
 <!doctype html>
-<html lang="ja">
+<html lang="ja" data-theme="dark" class="black">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>光背 Halo — 音の高さを、光の輪で観る</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="スマホのマイクで、音の高さを「光の輪」で観る。12時がド、1周で1オクターブの螺旋に、千本の光。歌の音程、和音の形、倍音が見える。触れて鳴らすこともできる。サンプルはパッヘルベルの「カノン」。">
-<meta name="theme-color" content="#eceee9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121513" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="光背 Halo">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -25,7 +24,7 @@
 <header class="kh-head">
   <div class="kh-head-inner">
     <h1 class="kh-mark"><span class="kh-kanji">光背</span><span class="kh-sub">Halo</span></h1>
-    <p class="head-status" id="head-status" aria-live="polite"><i class="live-dot" aria-hidden="true"></i><span id="head-status-text">止まっています</span></p>
+    <p class="head-status" id="head-status" aria-live="polite"><i class="live-dot" aria-hidden="true"></i><span id="head-status-text">停止中</span></p>
     <a class="kh-lang" href="en.html" lang="en" hreflang="en">English</a>
     <button type="button" class="btn btn-icon-only kh-about-btn" id="btn-about" aria-label="光背のしくみ（見方・物理・数学・英語・コード）"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-info"></use></svg></button>
   </div>
@@ -169,16 +168,6 @@
         <li>ド C2（約 65 Hz）より低い音と、ド C9（約 8,400 Hz）より高い音は、螺旋の外なので描きません。</li>
         <li>音はこの端末の中で計算するだけです（録音も送信もしません）。</li>
       </ul>
-    </section>
-
-    <section id="ab-view-set" aria-labelledby="ab-view">
-      <h3 id="ab-view">表示</h3>
-      <div class="seg seg-small" role="radiogroup" aria-labelledby="ab-view">
-        <label><input type="radio" name="kh-theme" value="auto"><span>端末に合わせる</span></label>
-        <label><input type="radio" name="kh-theme" value="light"><span>明るい</span></label>
-        <label><input type="radio" name="kh-theme" value="dark"><span>暗い</span></label>
-      </div>
-      <p class="kh-small">暗い表示では、光が金色に輝きます。</p>
     </section>
   </div>
 </dialog>

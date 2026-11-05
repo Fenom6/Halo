@@ -141,7 +141,7 @@ try {
     const hz = parseFloat(await text('#kh-hz'));
     expect(Math.abs(hz - 440) < 3, `高さが ${hz} Hz`);
     expect((await text('#kh-sub')).includes('9時の向き・3周目'), await text('#kh-sub'));
-    expect((await text('#head-status-text')) === 'マイクで観ています', await text('#head-status-text'));
+    expect((await text('#head-status-text')) === '観測中', await text('#head-status-text'));
     expect(await page.locator('#kh-badge').isHidden(), '例のしるしが残っている');
     const x = await markX(page);
     expect(x > 0 && x < 0.5, `朱色の光の横位置が ${x}（左半分＝9時側のはず）`);
@@ -165,15 +165,15 @@ try {
     if (SHOTS) await writeFile(join(SHOTS, 'k03-saved.png'), buf);
   });
 
-  await check('マイクを止めると「止まっています」になり、止めた絵が残る', async () => {
+  await check('マイクを止めると「停止中」になり、止めた絵が残る', async () => {
     await page.click('#btn-mic');
-    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '止まっています', null, { timeout: 5000 });
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
     expect((await inkOf(page)) > 500, '止めたら絵が消えた');
   });
 
   await check('指で鳴らす：螺旋のラ4に触れると、ラが鳴って映る。離すと止まる', async () => {
     await page.click('#btn-touch');
-    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '指で鳴らしています', null, { timeout: 5000 });
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '鳴らし中', null, { timeout: 5000 });
     expect((await page.getAttribute('#btn-touch', 'aria-pressed')) === 'true', 'ボタンが押された状態にならない');
     const p = await spiralXY(page, 69);
     await page.mouse.move(p.x, p.y);
@@ -200,7 +200,7 @@ try {
     await page.waitForTimeout(2600);
     await shot('k05-touch-bloom');
     await page.click('#btn-touch');
-    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '止まっています', null, { timeout: 5000 });
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
     expect((await page.getAttribute('#kh-stage', 'data-touch')) === 'off', '指で鳴らすが止まらない');
   });
 
@@ -237,25 +237,24 @@ try {
     await page.keyboard.press('Escape');
   });
 
-  await check('しくみ：見方・物理・数学・英語・コードの説明があり、表示を暗くできる', async () => {
+  await check('しくみ：見方・物理・数学・英語・コードの説明がある', async () => {
     await page.click('#btn-about');
     await page.waitForSelector('#dlg-about[open]');
     const body = await text('#dlg-about');
     for (const w of ['見方', '物理', '数学', '英語', 'コード', 'log', 'octave', 'armBinMap']) expect(body.includes(w), `「${w}」がない`);
     await shot('k08-about');
-    await page.check('#dlg-about input[name="kh-theme"][value="dark"]');
-    await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark', null, { timeout: 3000 });
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
+  });
+
+  await check('日本語版も、端末が明るい表示でも黒い地（光背の地も、ページの地も、まっ黒）。表示の切り替えはない', async () => {
+    expect((await page.locator('input[name="kh-theme"]').count()) === 0, '表示の明るさの切り替えが残っている');
     const bg = await page.evaluate(() => {
       const d = document.querySelector('#cv-kouhai').getContext('2d').getImageData(2, 2, 1, 1).data;
-      return d[0] + d[1] + d[2];
+      return [d[0], d[1], d[2], getComputedStyle(document.body).backgroundColor, document.querySelector('meta[name="theme-color"]').content];
     });
-    expect(bg < 120, `暗い表示なのに、光背の地が明るい（${bg}）`);
+    expect(bg[0] + bg[1] + bg[2] === 0 && bg[3] === 'rgb(0, 0, 0)' && bg[4] === '#000000', `黒い地ではない（${bg.join(', ')}）`);
     await shot('k09-dark');
-    await page.click('#btn-about');
-    await page.check('#dlg-about input[name="kh-theme"][value="auto"]');
-    await page.keyboard.press('Escape');
   });
 
   await check('横に持つ：左に光背（画面の高さに収まる）、右に操作。はみ出さない', async () => {
@@ -345,7 +344,6 @@ if (existsSync(join(ROOT, 'dist/halo-artifact.html'))) {
       await p.waitForFunction(() => document.querySelector('#kh-hz').textContent.includes('例'), null, { timeout: 10000 });
       expect(await p.locator('#kh-embedded').isVisible(), 'マイクが使えない案内がない');
       expect((await p.locator('#kouhai-dial .kouhai-pc').count()) === 12, '音名が12個ない');
-      expect(await p.locator('#ab-view-set').isHidden(), 'Claude の中なのに、表示の明るさの切り替えが出ている');
     });
     await check('1ファイル版：指で鳴らすと映り、残すと Claude の保存の機能で絵を保存する', async () => {
       await p.click('#btn-touch');

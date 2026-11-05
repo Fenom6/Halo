@@ -23,9 +23,9 @@ import { analyserLikeDb, noteInfo, freqToMidi, midiToFreq } from './dsp.js';
 import { canonRound } from './synth.js';
 import { formatHz, formatCents } from './format.js';
 import { $, $$, h, toast, openDialog, onResize, saveFile } from './ui.js';
-import { prefs, applyTheme } from './prefs.js';
+import { prefs } from './prefs.js';
 import { isEmbedded } from './claude.js';
-import { LANG, L, noteName, clockText } from './i18n.js';
+import { L, noteName, clockText } from './i18n.js';
 
 const ANALYSIS_MS = 80;
 const UI_MS = 120;
@@ -56,10 +56,10 @@ const CAPTION = {
   ),
 };
 const STATUS = {
-  mic: () => L('マイクで観ています', 'Listening'),
+  mic: () => L('観測中', 'Listening'),
   file: (name) => L(`ファイル：${name}`, name),
-  sample: (name) => L(`サンプル：${name}`, name),
-  touch: () => L('指で鳴らしています', 'Touch'),
+  sample: (name) => L(name, name),
+  touch: () => L('鳴らし中', 'Touch'),
 };
 /** カノンを鳴らしているあいだ、絵の下に出す「観るところ」 */
 const CANON_LOOK = L(
@@ -67,8 +67,6 @@ const CANON_LOOK = L(
   'Three lights chase the same melody, each two bars (8 beats) behind. The gold ring is the bass (eight notes, over and over). When all three voices are in…',
 );
 
-// 英語版（en.html）は、いつも黒い地（<html data-theme="dark" class="black">）。日本語版は設定どおり
-if (LANG !== 'en') applyTheme();
 
 const engine = new AudioEngine({ fftSize: KOUHAI_FFT_SIZE });
 engine.keepAwake = prefs.get('keepAwake');
@@ -364,7 +362,7 @@ function onStopped() {
   stalled = false;
   deadMic = false;
   silentSince = 0;
-  setStatus(L('止まっています', 'Stopped'), false);
+  setStatus(L('停止中', 'Stopped'), false);
   setCaption();
   updateButtons();
   redrawStill();
@@ -650,15 +648,6 @@ el.btnSave.addEventListener('click', async () => {
 
 // ---------- しくみ（見方・物理・数学・英語・コード） ----------
 el.btnAbout.addEventListener('click', () => openDialog($('#dlg-about')));
-for (const r of $$('input[name="kh-theme"]')) {
-  r.checked = r.value === prefs.get('theme');
-  r.addEventListener('change', () => {
-    if (!r.checked) return;
-    prefs.set('theme', r.value);
-    applyTheme();
-  });
-}
-
 // ---------- 最初に見せる例：カノンの3つの声がそろったところを止めた絵 ----------
 const EXAMPLE_BEAT = ALL_VOICES_BEAT + 0.6;
 function renderExample() {
@@ -690,19 +679,14 @@ onResize(el.stage, () => {
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyPalette);
 new MutationObserver(applyPalette).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
-// Claude の中（claude.ai）ではマイクが使えないので、先に伝えておく。
-// 表示の明るさは Claude が決めるので、切り替えは出さない
-if (isEmbedded) {
-  el.note.hidden = false;
-  const themeSet = $('#ab-view-set');
-  if (themeSet) themeSet.hidden = true;
-}
+// Claude の中（claude.ai）ではマイクが使えないので、先に伝えておく
+if (isEmbedded) el.note.hidden = false;
 
 // 始めの状態
 stage.resize();
 applyPalette();
 updateButtons();
-setStatus(L('止まっています', 'Stopped'), false);
+setStatus(L('停止中', 'Stopped'), false);
 setCaption();
 renderExample();
 
