@@ -142,12 +142,21 @@ try {
   await check('開くと、例（カノンの3つの声がそろったところ）の光背と、12の音名が出る。横にはみ出さない', async () => {
     await page.waitForFunction(() => document.querySelector('#kh-hz').textContent.includes('例'), null, { timeout: 10000 });
     expect((await page.locator('#kouhai-dial .kouhai-pc').count()) === 12, '音名が12個ない');
-    expect((await text('#kh-badge')) === '例', '例のしるしがない');
+    expect((await text('#kh-badge')).includes('例') && (await text('#kh-badge')).includes('カノンを聴いてみる'), `例のしるしと入口が「${await text('#kh-badge')}」`);
     expect((await inkOf(page)) > 2000, '光背がほとんど描かれていない');
     expect((await overflow()) <= 0, '横にはみ出している');
     const box = await page.locator('#kh-stage').boundingBox();
     expect(Math.abs(box.width - box.height) < 2 && box.width > 340, `光背が正方形で画面いっぱいではない（${box.width}×${box.height}）`);
     await shot('k01-start');
+  });
+
+  await check('最初の一歩：「例 ▶ カノンを聴いてみる」を押すと、声を選ぶ窓を通らずにすぐ鳴り始める', async () => {
+    await page.click('#kh-badge');
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent.includes('カノン'), null, { timeout: 8000 });
+    expect(await page.locator('#dlg-canon').evaluate((d) => !d.open), '声を選ぶ窓が開いてしまう');
+    expect(await page.locator('#kh-badge').isHidden(), '鳴らしているのに、例の入口が残っている');
+    await page.click('#btn-stop');
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
   });
 
   await check('マイク（440 Hz）で、まん中に「ラ」、読み取りに A4・440 Hz・9時の向き・3周目、朱色の光は左（9時）', async () => {
@@ -246,6 +255,23 @@ try {
     await page.click('#key-up');
     expect((await text('#key-oct')) === 'ド5', `上げたあと ${await text('#key-oct')}`);
     await page.click('#key-down');
+    // キーボードだけで弾く：13 の鍵はボタン。「−」から Tab で鍵へ入れ、Enter を押しているあいだ鳴る
+    expect((await page.getByRole('button', { name: 'ラ4（A4）' }).count()) === 1, '鍵が「ラ4（A4）」のボタンとして読めない');
+    await page.focus('#key-down');
+    await page.keyboard.press('Tab');
+    expect(await page.evaluate(() => document.activeElement.classList.contains('kh-key')), 'Tab で鍵へ入れない');
+    await page.locator('#kh-key-row .kh-key').nth(9).focus();
+    await page.keyboard.down('Enter');
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'ラ', null, { timeout: 5000 });
+    expect((await page.locator('#kh-key-row .kh-key').nth(9).getAttribute('aria-pressed')) === 'true', '押している鍵が「押されている」にならない');
+    expect((await text('#key-now')) === 'ラ4', `押している音の大きな表示が「${await text('#key-now')}」`);
+    await page.keyboard.up('Enter');
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === '観', null, { timeout: 5000 });
+    await page.keyboard.down(' ');
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'ラ', null, { timeout: 5000 });
+    await page.keyboard.up(' ');
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === '観', null, { timeout: 5000 });
+    expect(await page.locator('#key-now').isHidden(), '離しても大きな表示が残る');
     await page.uncheck('#opt-keys');
   });
 
@@ -358,7 +384,9 @@ try {
     for (const w of ['A4 = 442 Hz', 'Sa Re Ga', '12時：レ']) expect(summary.includes(w), `要約に「${w}」がない（${summary}）`);
     const labels = await page.locator('#kouhai-dial .kouhai-pc').allInnerTexts();
     expect(labels[0] === 'Sa' && labels[7] === 'Pa' && labels.length === 12, `まわりの音名が ${labels.join(' ')}`);
-    expect((await text('#kh-caption')).startsWith('12時がSa'), await text('#kh-caption'));
+    expect((await text('#kh-caption')).includes('12時がSa'), await text('#kh-caption'));
+    const said = await page.getAttribute('#cv-kouhai', 'aria-label');
+    expect(said.includes('12時がSa') && !said.includes('12時がド'), `読み上げ用の絵の説明が古い：${said}`);
     await page.click('#btn-mic');
     await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'Pa', null, { timeout: 10000 });
     await page.waitForTimeout(1200);
@@ -506,6 +534,16 @@ try {
     const left = jp.filter((w) => !allowed.has(w));
     expect(!left.length, `英語版に日本語が残っている：${left.join(' ')}`);
     expect((await page.getAttribute('.kh-lang', 'href')) === './', '英語版に 日本語 の入口がない');
+    // 幅 320 px：上の帯の状態（Stopped）を省略しない
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.waitForTimeout(300);
+    const cut = await page.evaluate(() => {
+      const t = document.querySelector('#head-status-text');
+      return [t.textContent, t.scrollWidth - t.clientWidth, document.documentElement.scrollWidth - document.documentElement.clientWidth];
+    });
+    expect(cut[1] <= 0 && cut[2] <= 0, `幅 320 px で「${cut[0]}」が省略される（${cut[1]} px）・はみ出し ${cut[2]} px`);
+    await shot('k13-english-320');
+    await page.setViewportSize({ width: 390, height: 844 });
   });
 
   await check('エラーが1つも出ていない', async () => {

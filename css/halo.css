@@ -837,12 +837,34 @@ dialog::backdrop {
   position: absolute;
   left: 8px;
   top: 8px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
   font-size: var(--fs-xs);
+  font-weight: 700;
   color: var(--scope-ink);
   background: color-mix(in oklab, var(--scope-bg) 82%, transparent);
-  border: 1px solid var(--line);
-  padding: 2px 8px;
+  border: 1px solid var(--accent);
+  padding: 2px 12px 2px 4px;
   border-radius: 999px;
+  cursor: pointer;
+}
+.kh-badge[hidden] {
+  display: none;
+}
+.kh-badge .btn-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--accent);
+}
+.kh-badge-ex {
+  font-weight: 400;
+  color: var(--scope-muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 1px 8px;
 }
 
 /* ---------- 読み取りと操作 ---------- */
@@ -1230,13 +1252,16 @@ dialog::backdrop {
   align-items: flex-end;
   justify-content: center;
   min-height: 96px;
-  padding-bottom: 6px;
+  min-width: 0;
+  padding: 0 0 6px;
   border-radius: 0 0 6px 6px;
   background: #e9e4d6;
   color: #1b1d1b;
-  font-size: 11px;
+  font: inherit;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
+  border: 0;
   white-space: nowrap;
   overflow: hidden;
   cursor: pointer;
@@ -1244,8 +1269,8 @@ dialog::backdrop {
 .kh-key.is-sharp {
   background: #2a2d2a;
   color: #b9b4a6;
-  font-size: 8px;
-  letter-spacing: -0.04em;
+  font-size: 9px;
+  letter-spacing: -0.06em;
   min-height: 64px;
   align-self: start;
 }
@@ -1337,4 +1362,36 @@ dialog.kh-look-sheet::backdrop {
 }
 .kh-look-sheet .tn-help {
   margin: 0;
+}
+
+/* 鍵の字が小さい画面のために、押している音を鍵盤のすぐ下に大きく出す */
+.kh-key-now {
+  grid-area: from;
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--fs-xl);
+  line-height: 1;
+}
+.kh-key-now[hidden],
+.kh-key-from[hidden] {
+  display: none;
+}
+.kh-key:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* 幅の狭い画面：見出しの小さな字（HALO・光背）をしまい、上の帯の状態（停止中・Stopped）を省略せずに出す */
+@media (max-width: 360px) {
+  .kh-head .kh-sub {
+    display: none;
+  }
+  .kh-head-inner {
+    gap: var(--sp-2);
+  }
+  .kh-lang {
+    padding: var(--sp-1) 6px;
+  }
 }

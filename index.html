@@ -41,7 +41,7 @@
       <p class="bloom-text"><span class="bloom-title">カノン</span><span class="bloom-line">響きは、巡る。</span></p>
     </div>
     <div class="probe" id="probe" data-axis="none" hidden><span class="probe-line"></span><span class="probe-label" id="probe-label"></span></div>
-    <p class="kh-badge" id="kh-badge">例</p>
+    <button type="button" class="kh-badge" id="kh-badge"><span class="kh-badge-ex">例</span><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-play"></use></svg>カノンを聴いてみる</button>
   </div>
 
   <section class="kh-panel" aria-label="いまの高さと操作">
@@ -53,7 +53,8 @@
       <button type="button" class="btn btn-icon-only kh-key-oct" id="key-down" aria-label="1オクターブ下げる">−</button>
       <div class="kh-key-row" id="kh-key-row" role="group" aria-label="鍵盤（主音から1オクターブ上の主音まで）"></div>
       <button type="button" class="btn btn-icon-only kh-key-oct" id="key-up" aria-label="1オクターブ上げる">＋</button>
-      <p class="kh-key-from">いちばん左：<span id="key-oct"></span></p>
+      <p class="kh-key-from" id="key-from">いちばん左：<span id="key-oct"></span></p>
+      <p class="kh-key-now" id="key-now" aria-live="polite" hidden></p>
     </div>
     <div class="kh-read">
       <div class="kh-read-top">
@@ -80,7 +81,7 @@
     <p class="kh-error" id="mic-error" role="alert" hidden></p>
     <p class="kh-note-box" id="kh-embedded" hidden>この画面（Claude の中）ではマイクは使えません。「カノン」「指で鳴らす」「ファイル」で試せます。マイクで観るには、公開した光背のページをブラウザで開いてください。</p>
 
-    <p class="kh-caption" id="kh-caption">12時がド。時計回りに半音ずつ進み、1周で1オクターブ高くなります（内側ほど低い音）。外へ伸びる光の長さと色が、その高さの強さです。</p>
+    <p class="kh-caption" id="kh-caption">歌ったり弾いたりすると、音の高さが光になります。12時がド、時計回りに半音ずつ、1周で1オクターブ。くわしい見方は右上の「i」へ。</p>
     <p class="kh-privacy">音はこの端末の中だけで計算します。録音も送信もしません。「残す」は絵（PNG）、「録画」は光の動きの動画を、押したときだけ作ります（マイクの音は動画に入れません）。</p>
   </section>
 </main>
