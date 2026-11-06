@@ -17,3 +17,13 @@ test('下の帯に URL を描く（画像にも動画にも共通の描き方）
   const kouhai = await read('js/kouhai.js');
   assert.match(kouhai, /fillText\(APP_URL_LABEL/);
 });
+
+test('共有の文章のハッシュタグ：日本語は #光背Halo、英語は #HaloPitch（#Halo は使わない）', async () => {
+  const main = await read('js/main.js');
+  const text = /text: L\('([^']+)', '([^']+)'\)/.exec(main);
+  assert.ok(text, '共有の文章が見つかりません');
+  const [, ja, en] = text;
+  assert.match(ja, /#光背Halo /);
+  assert.match(en, /#HaloPitch /);
+  assert.doesNotMatch(`${ja} ${en}`, /#Halo(?!Pitch)/);
+});

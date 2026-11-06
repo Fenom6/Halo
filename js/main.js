@@ -924,8 +924,8 @@ async function shareOrSave(blob, name, type) {
   const file = typeof File === 'function' ? new File([blob], name, { type }) : null;
   if (!isEmbedded && file && navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
-      // 送り先で、何のアプリで作ったか分かるように、ひとこととページの場所を添える（#Halo）
-      await navigator.share({ files: [file], title: L('光背 Halo', 'Halo'), text: L('光背 Halo で観た音 #Halo https://fenom6.github.io/Halo/', 'Sound seen with Halo #Halo https://fenom6.github.io/Halo/') });
+      // 送り先で、何のアプリで作ったか分かるように、ひとこととページの場所を添える（#光背Halo ／ #HaloPitch。#Halo は有名なゲームの名前と重なって埋もれるため使わない）
+      await navigator.share({ files: [file], title: L('光背 Halo', 'Halo'), text: L('光背 Halo で観た音 #光背Halo https://fenom6.github.io/Halo/', 'Sound seen with Halo #HaloPitch https://fenom6.github.io/Halo/') });
       return 'shared';
     } catch (err) {
       if (err && err.name === 'AbortError') return 'cancelled';

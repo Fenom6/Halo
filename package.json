@@ -1,6 +1,6 @@
 {
   "name": "halo",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "private": true,
   "description": "光背 Halo — 音の高さを光の輪で表示する Web アプリ（チューナー・和音の図形・パッヘルベルのカノン）",
   "license": "MIT",
