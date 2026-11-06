@@ -77,12 +77,13 @@
       <button type="button" class="btn btn-quiet" id="btn-save"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-keep"></use></svg>残す</button>
       <button type="button" class="btn btn-quiet" id="btn-record" aria-pressed="false"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-rec"></use></svg><span id="btn-record-text">録画</span></button>
     </div>
-    <input type="file" id="file-input" accept="audio/*" hidden>
+    <input type="file" id="file-input" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.oga,.opus,.flac,.webm" hidden>
+    <p class="kh-file-hint">ファイル：MP3・M4A（AAC）・WAV・OGG・FLAC など。パソコンでは、音のファイルをこの画面へドラッグしても読めます（読める形式はブラウザによって少しちがいます）。</p>
     <p class="kh-error" id="mic-error" role="alert" hidden></p>
     <p class="kh-note-box" id="kh-embedded" hidden>この画面（Claude の中）ではマイクは使えません。「カノン」「指で鳴らす」「ファイル」で試せます。マイクで観るには、公開した光背のページをブラウザで開いてください。</p>
 
     <p class="kh-caption" id="kh-caption">歌ったり弾いたりすると、音の高さが光になります。12時がド、時計回りに半音ずつ、1周で1オクターブ。くわしい見方は右上の「i」へ。</p>
-    <p class="kh-privacy">音はこの端末の中だけで計算します。録音も送信もしません。「残す」は絵（PNG）、「録画」は光の動きの動画を、押したときだけ作ります（マイクの音は動画に入れません）。</p>
+    <p class="kh-privacy">音はこの端末の中だけで計算し、どこへも送りません。「残す」は絵（PNG）、「録画」は光の動きの動画を、押したときだけ作ります。マイクの音は、録画のときに「マイクの音も入れる」を選んだときだけ動画に入ります。</p>
   </section>
 </main>
 
@@ -117,8 +118,20 @@
     <h2 id="dlg-look-h">見た目</h2>
     <form method="dialog"><button class="btn btn-icon-only" value="" aria-label="閉じる"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-close"></use></svg></button></form>
   </div>
-  <p class="sheet-lead">選ぶと、上の光背にすぐ映ります（この端末に覚えておきます）。</p>
+  <p class="sheet-lead">選ぶと、光背にすぐ映ります（この端末に覚えておきます）。</p>
   <div class="tn-body" id="look-body"></div>
+</dialog>
+
+<dialog class="sheet kh-rec-sheet" id="dlg-rec" closedby="any" aria-labelledby="dlg-rec-h">
+  <div class="sheet-head">
+    <h2 id="dlg-rec-h">マイクの音も録画しますか</h2>
+    <form method="dialog"><button class="btn btn-icon-only" value="" aria-label="やめる"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-close"></use></svg></button></form>
+  </div>
+  <p class="sheet-lead">入れると、歌や演奏の記録として、音つきの動画になります。動画はこの端末の中で作り、どこへも送りません。</p>
+  <form method="dialog" class="kh-rec-choices">
+    <button class="btn btn-primary btn-big" value="mic" id="rec-with-mic"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-mic"></use></svg>マイクの音も入れる</button>
+    <button class="btn btn-big" value="light" id="rec-light-only">光の動きだけ</button>
+  </form>
 </dialog>
 
 <dialog class="sheet sheet-tall kh-about" id="dlg-about" closedby="any" aria-labelledby="dlg-about-h">
@@ -212,7 +225,7 @@
         <li>まん中の音名は、高さがはっきりした音（声・楽器・口笛など）のときだけ出ます。和音では、いちばん強い成分を出します。</li>
         <li>ド C2（約 65 Hz）より低い音と、ド C9（約 8,400 Hz）より高い音は、螺旋の外なので描きません（主音を変えると、半オクターブの範囲で上下します）。</li>
         <li>音名は 12 の半音（四分音をオンにすると 24）で付けます。純正律やインドのシュルティ、ガムランの音階のように、この格子に乗らない音は、いちばん近い名前と「セント」のずれで表します。</li>
-        <li>音はこの端末の中で計算するだけです（録音も送信もしません）。</li>
+        <li>音はこの端末の中で計算するだけで、どこへも送りません。マイクの音が残るのは、「録画」で「マイクの音も入れる」を選んだときの動画の中だけです。</li>
         <li>マイクの「自動で音量をそろえる」「雑音を消す」処理は、わざと切っています。オンにすると音の大きさや音色が勝手に変わり、チューナーとして正確でなくなるためです。</li>
       </ul>
     </section>

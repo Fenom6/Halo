@@ -68,7 +68,7 @@ export class ClipRecorder {
     this.done = new Promise((resolve, reject) => {
       this.recorder.onstop = () => {
         cancelAnimationFrame(this.raf);
-        for (const t of stream.getVideoTracks()) t.stop(); // 音の流れは使い回すので止めない
+        for (const t of stream.getTracks()) t.stop(); // 映像も音も、この録画のための写しなので止める
         const blob = new Blob(this.chunks, { type: this.type.split(';')[0] });
         blob.size ? resolve(blob) : reject(new Error('empty'));
       };

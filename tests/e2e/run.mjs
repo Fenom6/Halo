@@ -118,6 +118,11 @@ const spiralXY = (p, m) =>
     const rad = size * (0.135 + ((0.4 - 0.135) * turn) / 7);
     return { x: r.left + r.width / 2 + rad * Math.cos(angle), y: r.top + r.height / 2 + rad * Math.sin(angle) };
   }, m);
+/** 動画に音の筋（トラック）があるか：MP4 は音の係の印 soun、WebM は音の形式の印（A_OPUS など） */
+const hasAudioTrack = (buf) => {
+  const s = buf.toString('latin1');
+  return s.includes('soun') || /A_(OPUS|VORBIS|AAC)/.test(s);
+};
 /** PNG の幅と高さ（ファイルの先頭の IHDR から読む） */
 const pngSize = (buf) => ({ sig: buf.subarray(1, 4).toString(), w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) });
 
@@ -376,8 +381,58 @@ try {
     const buf = await readFile(await dl.path());
     expect(buf.length > 2000, `動画が小さすぎる（${buf.length} バイト）`);
     if (dl.suggestedFilename().endsWith('.webm')) expect(buf.readUInt32BE(0) === 0x1a45dfa3, 'WebM の印（EBML）がない');
+    // カノンを止めたあとの録画でも、動画に音の筋（トラック）が入っている（以前は、止めたあとだと入らなかった）
+    expect(hasAudioTrack(buf), '動画に音の筋（トラック）がない');
     await page.waitForFunction(() => document.querySelector('#btn-record').getAttribute('aria-pressed') === 'false', null, { timeout: 5000 });
     expect((await text('#btn-record-text')) === '録画', '録画のボタンが元に戻らない');
+  });
+
+  await check('録画（マイク）：マイクで聴いているときは、マイクの音も入れるかをたずねる。やめる・入れるを選べる', async () => {
+    await page.click('#btn-mic');
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'ラ', null, { timeout: 10000 });
+    // ✕ でやめると、録画は始まらない
+    await page.click('#btn-record');
+    await page.waitForSelector('#dlg-rec[open]');
+    await shot('k07c-record-ask');
+    await page.click('#dlg-rec .sheet-head button');
+    await page.waitForTimeout(300);
+    expect((await page.getAttribute('#btn-record', 'aria-pressed')) === 'false', 'やめたのに録画が始まった');
+    // 「マイクの音も入れる」：440 Hz のマイクの音が入った動画ができる
+    await page.click('#btn-record');
+    await page.waitForSelector('#dlg-rec[open]');
+    await page.click('#rec-with-mic');
+    await page.waitForFunction(() => document.querySelector('#btn-record').getAttribute('aria-pressed') === 'true', null, { timeout: 5000 });
+    await page.waitForTimeout(1500);
+    const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 10000 }), page.click('#btn-record')]);
+    const buf = await readFile(await dl.path());
+    expect(hasAudioTrack(buf) && buf.length > 2000, 'マイクの音を入れた動画に、音の筋がない');
+    await page.click('#btn-mic');
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
+  });
+
+  await check('ファイル：対応形式の説明があり、音のファイルを画面へドラッグすると読める', async () => {
+    expect((await text('.kh-file-hint')).includes('MP3') && (await text('.kh-file-hint')).includes('WAV'), '対応形式の説明がない');
+    expect((await page.getAttribute('#file-input', 'accept')).includes('.flac'), 'ファイルの選び方に形式が書かれていない');
+    await page.evaluate(() => {
+      // 1 秒の 440 Hz（WAV）を作って、光背へ落とす
+      const sr = 48000;
+      const n = sr;
+      const buf = new ArrayBuffer(44 + n * 2);
+      const v = new DataView(buf);
+      const str = (o, t) => [...t].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+      str(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt ');
+      v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true);
+      v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, n * 2, true);
+      for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.round(0.4 * 32767 * Math.sin((2 * Math.PI * 440 * i) / sr)), true);
+      const dt = new DataTransfer();
+      dt.items.add(new File([buf], 'la440.wav', { type: 'audio/wav' }));
+      const target = document.querySelector('#kh-stage');
+      for (const type of ['dragenter', 'dragover', 'drop']) target.dispatchEvent(new DragEvent(type, { dataTransfer: dt, bubbles: true, cancelable: true }));
+    });
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent.includes('la440.wav'), null, { timeout: 8000 });
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'ラ', null, { timeout: 8000 });
+    expect(!(await page.getAttribute('#kh-stage', 'data-drop')), '落としたあとも、光背の枠が光ったまま');
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 8000 });
   });
 
   await check('しくみ：見方・物理・数学・英語・コードの説明がある', async () => {
@@ -509,6 +564,15 @@ try {
     expect(panel.x >= box.x + box.width - 1, '操作が光背の右にない');
     expect((await overflow()) <= 0, '横にはみ出している');
     await shot('k10-landscape');
+    // 横向きでは、見た目の窓は右の列を覆う引き出し（光背は見えたまま。窓の外に操作がはみ出して重ならない）
+    await page.click('#btn-look');
+    await page.waitForSelector('#dlg-look[open]');
+    await page.waitForTimeout(300);
+    const sheet = await page.locator('#dlg-look').boundingBox();
+    expect(Math.abs(sheet.x + sheet.width - 844) < 2 && sheet.x >= box.x + box.width - 2 && sheet.height >= 388, `見た目の窓が右の引き出しになっていない（${JSON.stringify(sheet)}）`);
+    await shot('k10b-landscape-look');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
     await page.setViewportSize({ width: 390, height: 844 });
   });
 
