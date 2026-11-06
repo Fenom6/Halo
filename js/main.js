@@ -917,19 +917,72 @@ function footerText(when) {
 }
 
 /**
- * できあがったファイルを、スマホでは共有の画面へ（写真に保存・家族や友だちに送る）。共有できなければ、ファイルとして保存する。
+ * 指で操作する端末か（スマホ・タブレット）。マウスで指せず、指で触る画面なら true。
+ * タッチ画面つきのパソコンは、ふつうマウスやタッチパッドで指せるので false（パソコンとして扱う）
+ */
+function isTouchDevice() {
+  return matchMedia('(hover: none) and (pointer: coarse)').matches;
+}
+
+/**
+ * パソコンで、共有するか、ダウンロードするかをたずねる。
+ * 共有の画面には「ファイルとして保存」がない端末がある（Windows の共有の画面には、Google ドライブも出ない）ため、
+ * いつでもふつうのファイルとして保存できるようにする。
+ * 返り値は 'shared' | 'cancelled' | 'download' | 'failed'
+ */
+function askShareOrDownload(shareData) {
+  const dlg = $('#dlg-out');
+  const shareBtn = $('#out-share');
+  return new Promise((resolve) => {
+    let sharing = null;
+    const onShare = (e) => {
+      // 押したその場で共有の画面を開く（スマホのブラウザは「押した直後」でないと共有の画面を開かせないため）
+      e.preventDefault();
+      sharing = navigator.share(shareData).then(
+        () => 'shared',
+        (err) => (err && err.name === 'AbortError' ? 'cancelled' : 'failed'),
+      );
+      dlg.close('share');
+    };
+    shareBtn.addEventListener('click', onShare);
+    dlg.addEventListener(
+      'close',
+      () => {
+        shareBtn.removeEventListener('click', onShare);
+        if (sharing) sharing.then(resolve);
+        else resolve(dlg.returnValue === 'download' ? 'download' : 'cancelled');
+      },
+      { once: true },
+    );
+    openDialog(dlg);
+  });
+}
+
+/**
+ * できあがったファイルを、共有の画面へ（写真に保存・家族や友だちに送る）か、ダウンロードへ。
+ * スマホ・タブレットはすぐ共有の画面へ。パソコンは、共有かダウンロードかをたずねる。
+ * 共有できない端末や、共有に失敗したときは、ファイルとして保存する。
  * 返り値は 'shared' | 'cancelled' | 'saved' | 'declined' | 'failed' | 'unavailable'
  */
 async function shareOrSave(blob, name, type) {
   const file = typeof File === 'function' ? new File([blob], name, { type }) : null;
   if (!isEmbedded && file && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      // 送り先で、何のアプリで作ったか分かるように、ひとこととページの場所を添える（#光背Halo ／ #HaloPitch。#Halo は有名なゲームの名前と重なって埋もれるため使わない）
-      await navigator.share({ files: [file], title: L('光背 Halo', 'Halo'), text: L('光背 Halo で観た音 #光背Halo https://fenom6.github.io/Halo/', 'Sound seen with Halo #HaloPitch https://fenom6.github.io/Halo/') });
-      return 'shared';
-    } catch (err) {
-      if (err && err.name === 'AbortError') return 'cancelled';
+    // 送り先で、何のアプリで作ったか分かるように、ひとこととページの場所を添える（#光背Halo ／ #HaloPitch。#Halo は有名なゲームの名前と重なって埋もれるため使わない）
+    const data = { files: [file], title: L('光背 Halo', 'Halo'), text: L('光背 Halo で観た音 #光背Halo https://fenom6.github.io/Halo/', 'Sound seen with Halo #HaloPitch https://fenom6.github.io/Halo/') };
+    if (isTouchDevice()) {
+      // スマホ・タブレット：今までどおり、すぐ共有の画面へ（共有の画面に「写真に保存」「ファイルに保存」があるため）
+      try {
+        await navigator.share(data);
+        return 'shared';
+      } catch (err) {
+        if (err && err.name === 'AbortError') return 'cancelled';
+      }
+    } else {
+      // パソコン：共有するか、ダウンロードするかをたずねる
+      const r = await askShareOrDownload(data);
+      if (r === 'shared' || r === 'cancelled') return r;
     }
+    // ダウンロードを選んだとき、または共有に失敗したとき → ファイルとして保存する
   }
   return saveFile(name, blob, type);
 }
