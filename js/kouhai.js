@@ -166,6 +166,8 @@ export function armBinMap(binHz, bins, count = ARM_COUNT) {
   return { mode, a, b, frac };
 }
 
+/** 保存する画像・動画の下の帯に書く、アプリの場所（https:// は省く） */
+const APP_URL_LABEL = 'fenom6.github.io/Halo';
 const BUCKETS = 10; // 光を明るさで10組に分け、組ごとにまとめて描く（速く描くため）
 const ORB_SIZE = [5.5, 4.5, 4]; // 3つの光の大きさ（今の高さ、追いかける光1、2）
 const ORB_STRENGTH = [1, 0.62, 0.38];
@@ -606,11 +608,12 @@ export class KouhaiView {
     g.fillStyle = rgbStr(colors.muted);
     g.font = `${Math.round(band * 0.2)}px ${body}`;
     g.fillText(L('Halo', 'kōhai'), pad + titleW + band * 0.15, by + band / 2 + band * 0.04);
-    if (footer) {
-      g.textAlign = 'right';
-      g.font = `${Math.round(band * 0.22)}px ${body}`;
-      g.fillText(footer, pad + d, by + band / 2);
-    }
+    // 右側：上に1行（音名など）、下にアプリの URL。SNS へファイルとして上げ直しても、見た人がたどり着けるように
+    g.textAlign = 'right';
+    g.font = `${Math.round(band * 0.22)}px ${body}`;
+    if (footer) g.fillText(footer, pad + d, by + band * 0.34);
+    g.font = `${Math.round(band * 0.19)}px ${mono}`;
+    g.fillText(APP_URL_LABEL, pad + d, by + band * (footer ? 0.7 : 0.5));
     return out;
   }
 }

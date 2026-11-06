@@ -924,8 +924,8 @@ async function shareOrSave(blob, name, type) {
   const file = typeof File === 'function' ? new File([blob], name, { type }) : null;
   if (!isEmbedded && file && navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
-      // 送り先で、何のアプリで作ったか分かるように、ひとこととページの場所を添える（#Halo）
-      await navigator.share({ files: [file], title: L('光背 Halo', 'Halo'), text: L('光背 Halo で観た音 #Halo https://fenom6.github.io/Halo/', 'Sound seen with Halo #Halo https://fenom6.github.io/Halo/') });
+      // 送り先で、何のアプリで作ったか分かるように、ひとこととページの場所を添える（#光背Halo ／ #HaloPitch。#Halo は有名なゲームの名前と重なって埋もれるため使わない）
+      await navigator.share({ files: [file], title: L('光背 Halo', 'Halo'), text: L('光背 Halo で観た音 #光背Halo https://fenom6.github.io/Halo/', 'Sound seen with Halo #HaloPitch https://fenom6.github.io/Halo/') });
       return 'shared';
     } catch (err) {
       if (err && err.name === 'AbortError') return 'cancelled';
@@ -971,11 +971,27 @@ function askRecordMic() {
   });
 }
 
+// 録画の始まりから、保存が終わるまで true。そのあいだは、次の録画を始めさせない
+// （保存を待っている間に次の録画を始めると、前のマイクの接続が残ったり、画面の表示が前の録画に書きかえられたりするため）
+let recBusy = false;
 el.btnRecord.addEventListener('click', async () => {
   if (clip && clip.recording) {
     clip.stop();
     return;
   }
+  if (recBusy) {
+    toast(L('動画を保存しています。終わってからもう一度押してください', 'Saving the video. Please try again when it is done'));
+    return;
+  }
+  recBusy = true;
+  try {
+    await recordOnce();
+  } finally {
+    recBusy = false;
+  }
+});
+
+async function recordOnce() {
   const when = stamp();
   try {
     await document.fonts?.ready;
@@ -1024,7 +1040,15 @@ el.btnRecord.addEventListener('click', async () => {
         : L('録画中（光の動きだけ。マイクの音は入れません）', 'Recording (picture only; the microphone is not recorded)'),
   );
   try {
-    const blob = await done;
+    let blob;
+    try {
+      blob = await done;
+    } finally {
+      // 録り終えたら、すぐマイクの接続を切る（保存や共有の窓を開いている間も、マイクを録画の流れにつなげたままにしない）
+      if (micOn) engine.recordMic(false);
+    }
+    el.btnRecord.setAttribute('aria-pressed', 'false');
+    el.btnRecordText.textContent = L('保存中…', 'Saving…');
     const ext = videoExt(clip.type);
     const r = await shareOrSave(blob, `kouhai-${when.file}.${ext}`, blob.type || `video/${ext}`);
     if (r !== 'shared' && r !== 'cancelled') {
@@ -1033,12 +1057,11 @@ el.btnRecord.addEventListener('click', async () => {
   } catch {
     toast(L('動画を作れませんでした', 'Could not make the video'));
   } finally {
-    if (micOn) engine.recordMic(false);
     el.btnRecord.setAttribute('aria-pressed', 'false');
     el.btnRecordText.textContent = RECORD_LABEL;
     clip = null;
   }
-});
+}
 
 // ---------- 世界の音楽に合わせる（基準の高さ・音名・主音・四分音） ----------
 initTuningSheet({ button: $('#btn-tuning'), dialog: $('#dlg-tuning') });
