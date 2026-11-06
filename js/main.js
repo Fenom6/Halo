@@ -152,6 +152,7 @@ const classifier = new SoundClassifier({ unit });
 const smoother = new PitchSmoother();
 let snap = null; // いまの結果 { pitch, clarity, cls }
 let showingExample = true;
+let intro = 0; // 最初の案内（3秒）が流れているあいだ、0 でない
 let lookHint = ''; // サンプルを鳴らしている間、絵の下に出す「観るところ」
 let pendingScore = null; // 次に鳴らすカノンの楽譜（再生位置 → 各声部の音）
 const sampleCache = new Map();
@@ -274,7 +275,10 @@ function paintCenter() {
   let hint = '';
   let icon = '';
   let label;
-  if (!k) {
+  if (intro) {
+    state = 'intro'; // 最初の案内のあいだは、音名だけを大きく出す
+    label = '';
+  } else if (!k) {
     state = 'idle';
     icon = isEmbedded ? 'ic-play' : 'ic-mic';
     hint = isEmbedded ? L('タップで鳴らす', 'Tap to play') : L('タップで聴く', 'Tap to listen');
@@ -920,7 +924,8 @@ async function shareOrSave(blob, name, type) {
   const file = typeof File === 'function' ? new File([blob], name, { type }) : null;
   if (!isEmbedded && file && navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: L('光背', 'Halo') });
+      // 送り先で、何のアプリで作ったか分かるように、ひとこととページの場所を添える（#Halo）
+      await navigator.share({ files: [file], title: L('光背 Halo', 'Halo'), text: L('光背 Halo で観た音 #Halo https://fenom6.github.io/Halo/', 'Sound seen with Halo #Halo https://fenom6.github.io/Halo/') });
       return 'shared';
     } catch (err) {
       if (err && err.name === 'AbortError') return 'cancelled';
@@ -1112,6 +1117,58 @@ new MutationObserver(applyPalette).observe(document.documentElement, { attribute
 // Claude の中（claude.ai）ではマイクが使えないので、先に伝えておく
 if (isEmbedded) el.note.hidden = false;
 
+// ---------- 最初の案内（3秒）：ドからシまで、光が時計回りに巡る ----------
+// 「12時がド、時計回りに半音ずつ」を、読まなくても目で見てわかるように。初めて開いたときに1回だけ流す
+// （「i」の見方から、もう一度流せる）。動きを減らす設定（prefers-reduced-motion）の端末では、自動では流さない
+const INTRO_STEP_MS = 250;
+function runIntro() {
+  if (intro || engine.active) return false;
+  document.documentElement.dataset.intro = 'on';
+  const start = syncSpiral().lowMidi + 24; // 主音の4番目のオクターブあたり（ド4 から）
+  let k = 0;
+  const step = () => {
+    if (k === 12) {
+      endIntro();
+      return;
+    }
+    const n = describe(midiHz(start + k));
+    stage.light(k, n.name);
+    stage.still(freq, freqToMidi(midiHz(start + k))); // 光（朱色の光）は、ラ＝440 Hz で数えた番号で置く
+    stage.setNote(n);
+    paintCenter();
+    el.caption.textContent = L(
+      `12時が${pcName(tuning.tonic)}。時計回りに半音ずつ進み、1周で1オクターブ。いまは ${n.name}（${n.hour}時）。`,
+      `${pcName(tuning.tonic)} is at 12 o'clock, a semitone per step clockwise, one octave per turn. Now: ${n.name} (${clockText(n.hour)}).`,
+    );
+    k++;
+    intro = setTimeout(step, INTRO_STEP_MS);
+  };
+  intro = -1; // 始まった印（最初の setTimeout の前）
+  step();
+  return true;
+}
+function endIntro() {
+  if (!intro) return;
+  clearTimeout(intro);
+  intro = 0;
+  delete document.documentElement.dataset.intro;
+  prefs.set('introSeen', true);
+  stage.light(null);
+  stage.setNote(null);
+  setCaption();
+  if (!engine.active) {
+    if (showingExample) renderExample();
+    else redrawStill();
+  }
+  paintCenter();
+}
+engine.addEventListener('start', endIntro); // 何かを鳴らし始めたら、案内はすぐやめる
+$('#btn-intro').addEventListener('click', () => {
+  $('#dlg-about').close();
+  if (engine.active) engine.stop();
+  runIntro();
+});
+
 // 始めの状態
 stage.resize();
 applyLook(currentLook());
@@ -1120,6 +1177,7 @@ updateButtons();
 setStatus(L('停止中', 'Stopped'), false);
 setCaption();
 renderExample();
+if (!prefs.get('introSeen') && !matchMedia('(prefers-reduced-motion: reduce)').matches) setTimeout(runIntro, 600);
 
 // 普通のブラウザで開いたときは、オフラインでも開けるように準備する（Service Worker）
 if (!isEmbedded && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {

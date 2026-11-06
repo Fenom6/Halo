@@ -62,6 +62,41 @@ export class HaloAudioError extends Error {
   }
 }
 
+/**
+ * どの端末・ブラウザか（マイクを許可しなおす手順が、端末ごとにちがうため）。
+ * 'ios'（iPhone・iPad の Safari など）・'android'・'firefox'・'desktop'（パソコンの Chrome・Edge・Safari）
+ */
+export function platformOf(nav = typeof navigator !== 'undefined' ? navigator : {}) {
+  const ua = nav.userAgent || '';
+  if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && (nav.maxTouchPoints || 0) > 1)) return 'ios';
+  if (/Android/.test(ua)) return 'android';
+  if (/Firefox\//.test(ua)) return 'firefox';
+  return 'desktop';
+}
+
+/** マイクを許可しなおす手順（端末ごと）。1行に1つの手順 */
+export function micAllowSteps(platform = platformOf()) {
+  const steps = {
+    ios: L(
+      '【iPhone・iPad】\n1. 画面上（または下）のアドレス欄の左の「ぁあ」（AA）を押す\n2.「Webサイトの設定」→「マイク」を「許可」にする\n3. ページを読み込みなおして、もう一度「マイクで観る」\n（出てこないときは「設定」アプリ →「Safari」→「マイク」を「確認」か「許可」に）',
+      '[iPhone / iPad]\n1. Tap “AA” at the left of the address bar\n2. Website Settings → Microphone → Allow\n3. Reload the page and tap “Microphone” again\n(If it is not there: Settings app → Safari → Microphone → Ask or Allow)',
+    ),
+    android: L(
+      '【Android（Chrome）】\n1. アドレス欄の左の印（鍵や、つまみの印）を押す\n2.「権限」→「マイク」を「許可」にする\n3. ページを読み込みなおして、もう一度「マイクで観る」',
+      '[Android (Chrome)]\n1. Tap the icon at the left of the address bar (lock or sliders)\n2. Permissions → Microphone → Allow\n3. Reload the page and tap “Microphone” again',
+    ),
+    firefox: L(
+      '【Firefox】\n1. アドレス欄のマイクの印（斜線つき）を押す\n2.「一時的にブロック」の × を押して、ブロックを外す\n3. ページを読み込みなおして、もう一度「マイクで観る」',
+      '[Firefox]\n1. Click the crossed-out microphone in the address bar\n2. Click the × next to “Blocked” to remove the block\n3. Reload the page and click “Microphone” again',
+    ),
+    desktop: L(
+      '【パソコン（Chrome・Edge・Safari）】\n1. アドレス欄の左の印（鍵や、つまみの印）を押す\n2.「マイク」を「許可」にする（Safari は「Safari」メニュー →「このWebサイトの設定」）\n3. ページを読み込みなおして、もう一度「マイクで観る」',
+      '[Computer (Chrome, Edge, Safari)]\n1. Click the icon at the left of the address bar (lock or sliders)\n2. Set Microphone to Allow (Safari: Safari menu → Settings for This Website)\n3. Reload the page and click “Microphone” again',
+    ),
+  };
+  return steps[platform] || steps.desktop;
+}
+
 /** マイクが使えなかった理由を、わかる言葉に直す */
 function micError(e) {
   const name = e && e.name;
@@ -69,8 +104,8 @@ function micError(e) {
     return new HaloAudioError(
       'denied',
       L(
-        'マイクの使用が許可されませんでした。ブラウザの設定でこのページのマイクを「許可」にすると使えます。表示している場所によってはマイクが使えないこともあります。そのときは「ファイル」か「カノン」で試せます。',
-        'Microphone access was not allowed. Allow the microphone for this page in your browser settings. Some places cannot use the microphone at all; then try "File" or "Canon".',
+        `マイクの使用が許可されていません。次の手順で「許可」にすると使えます。\n\n${micAllowSteps()}\n\nマイクを使わなくても、「カノン」「指で鳴らす」「ファイル」で試せます。`,
+        `The microphone is not allowed. Allow it like this:\n\n${micAllowSteps()}\n\nWithout the microphone you can still try Canon, Touch and File.`,
       ),
     );
   }
