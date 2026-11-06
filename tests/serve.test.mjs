@@ -39,3 +39,40 @@ test('空白や日本語の入ったフォルダからでも、node tools/serve.
     await rm(base, { recursive: true, force: true });
   }
 });
+
+// 安全：開発用サーバーは、このパソコンの中からだけ開け、隠しファイル（.git・.env など）や、
+// 配るフォルダの外のファイルを返さない（セキュリティ検査の指摘）
+import { symlink } from 'node:fs/promises';
+import { startServer, isHiddenPath } from '../tools/serve.mjs';
+
+test('隠しファイル・配るフォルダの外は返さない。ふだんは 127.0.0.1（このパソコンの中）だけで待つ', async () => {
+  const base = await mkdtemp(join(tmpdir(), 'halo-serve-safe-'));
+  const dir = join(base, 'site');
+  await mkdir(join(dir, '.git'), { recursive: true });
+  await mkdir(join(dir, 'docs'), { recursive: true });
+  await writeFile(join(dir, 'index.html'), '<p>ok</p>');
+  await writeFile(join(dir, '.git', 'config'), '[remote "origin"] url = https://token@example.invalid/repo');
+  await writeFile(join(dir, '.env'), 'SECRET=1');
+  await writeFile(join(base, 'outside.txt'), 'outside');
+  await symlink(join(base, 'outside.txt'), join(dir, 'docs', 'link.txt'));
+  const port = 9000 + Math.floor(Math.random() * 900);
+  const server = await startServer({ dir, listenPort: port });
+  try {
+    assert.equal(server.address().address, '127.0.0.1', '外のネットワークからも開ける');
+    const get = async (p) => (await fetch(`http://127.0.0.1:${port}${p}`)).status;
+    assert.equal(await get('/'), 200);
+    assert.equal(await get('/.git/config'), 403, '.git の中身を返した');
+    assert.equal(await get('/.env'), 403, '.env を返した');
+    assert.equal(await get('/%2egit/config'), 403, '文字を変えた .git を返した');
+    assert.equal(await get('/docs/link.txt'), 403, 'リンクをたどって、配るフォルダの外のファイルを返した');
+    assert.notEqual(await get('/..%2foutside.txt'), 200, '1つ上のフォルダのファイルを返した');
+  } finally {
+    server.close();
+    await rm(base, { recursive: true, force: true });
+  }
+});
+
+test('隠しファイルの見分け方', () => {
+  for (const p of ['/.git/config', '/.env', '/a/.claude/x', '\\.ssh\\id']) assert.ok(isHiddenPath(p), p);
+  for (const p of ['/', '/index.html', '/js/main.js', '/docs/images/a.jpg', './x']) assert.ok(!isHiddenPath(p), p);
+});
