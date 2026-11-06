@@ -517,16 +517,51 @@ el.btnFile.addEventListener('click', () => {
   engine.ensure().catch(() => {}); // ボタンを押した瞬間に音の部品を起こす（スマホの自動再生の制限のため）
   el.fileInput.click();
 });
-el.fileInput.addEventListener('change', async () => {
+el.fileInput.addEventListener('change', () => {
   const file = el.fileInput.files && el.fileInput.files[0];
   el.fileInput.value = '';
-  if (!file) return;
+  if (file) playFile(file);
+});
+
+/** 音のファイルを読んで鳴らす（ファイルのボタンからも、画面へドラッグしても） */
+async function playFile(file) {
+  showError('');
   try {
     const buf = await engine.decodeFile(file);
     await engine.playBuffer(buf, { kind: 'file', name: file.name });
   } catch (e) {
     showError(e.message || String(e));
   }
+}
+
+// パソコン：音のファイルを画面のどこへドラッグしても読める。ドラッグ中は光背の枠を光らせる
+const AUDIO_EXT = /\.(mp3|m4a|aac|wav|wave|ogg|oga|opus|flac|webm|aif|aiff|caf)$/i;
+const isAudioFile = (f) => !!f && (/^audio\//.test(f.type) || AUDIO_EXT.test(f.name || ''));
+const carriesFiles = (e) => !!e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+let dragDepth = 0;
+window.addEventListener('dragenter', (e) => {
+  if (!carriesFiles(e)) return;
+  e.preventDefault();
+  dragDepth++;
+  el.stage.dataset.drop = 'on';
+});
+window.addEventListener('dragover', (e) => {
+  if (!carriesFiles(e)) return;
+  e.preventDefault(); // これがないと、ブラウザがファイルを開いてしまう
+  e.dataTransfer.dropEffect = 'copy';
+});
+window.addEventListener('dragleave', () => {
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (!dragDepth) delete el.stage.dataset.drop;
+});
+window.addEventListener('drop', (e) => {
+  if (!carriesFiles(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  delete el.stage.dataset.drop;
+  const file = [...e.dataTransfer.files].find(isAudioFile);
+  if (file) playFile(file);
+  else showError(L('音のファイル（MP3・M4A・WAV・OGG・FLAC など）を落としてください。', 'Drop an audio file (MP3, M4A, WAV, OGG, FLAC…).'));
 });
 
 // ---------- カノン（パッヘルベル「カノン ニ長調」の始まり） ----------
@@ -922,6 +957,15 @@ let clip = null;
 const RECORD_LABEL = L('録画', 'Record');
 if (!videoType()) el.btnRecord.hidden = true; // 動画を作れないブラウザでは出さない
 
+/** 録画にマイクの音も入れるか、たずねる。'light'（光だけ）・'mic'（マイクの音も）・''（やめる） */
+function askRecordMic() {
+  const dlg = $('#dlg-rec');
+  return new Promise((resolve) => {
+    dlg.addEventListener('close', () => resolve(dlg.returnValue || ''), { once: true });
+    openDialog(dlg);
+  });
+}
+
 el.btnRecord.addEventListener('click', async () => {
   if (clip && clip.recording) {
     clip.stop();
@@ -933,7 +977,14 @@ el.btnRecord.addEventListener('click', async () => {
   } catch {
     /* 書体を待てなくても録れる */
   }
-  // スピーカーに出している音（カノン・指で鳴らす・ファイル）を動画に入れる。マイクの音は入れない
+  // マイクで聴いているときは、マイクの音も動画に入れるかを、その都度たずねる（入れないのがはじめの選択）
+  let withMic = false;
+  if (engine.kind === 'mic') {
+    const answer = await askRecordMic();
+    if (!answer) return; // やめた
+    withMic = answer === 'mic';
+  }
+  // スピーカーに出している音（カノン・指で鳴らす・ファイル）は、いつも動画に入れる
   let audio = null;
   try {
     await engine.ensure();
@@ -941,6 +992,7 @@ el.btnRecord.addEventListener('click', async () => {
   } catch {
     audio = null;
   }
+  const micOn = withMic && engine.recordMic(true);
   clip = new ClipRecorder({
     paint: (target) => stage.frameInto(target, footerText(when)),
     audio,
@@ -953,12 +1005,19 @@ el.btnRecord.addEventListener('click', async () => {
     done = clip.start();
   } catch {
     clip = null;
+    if (micOn) engine.recordMic(false);
     toast(L('このブラウザでは録画できません', 'This browser cannot record video'));
     return;
   }
   el.btnRecord.setAttribute('aria-pressed', 'true');
   el.btnRecordText.textContent = L('止める 0:00', 'Stop 0:00');
-  toast(engine.kind === 'mic' ? L('録画中（光の動きだけ。マイクの音は入れません）', 'Recording (picture only; the microphone is not recorded)') : L('録画中', 'Recording'));
+  toast(
+    engine.kind !== 'mic'
+      ? L('録画中', 'Recording')
+      : micOn
+        ? L('録画中（マイクの音も入れています）', 'Recording (with the microphone)')
+        : L('録画中（光の動きだけ。マイクの音は入れません）', 'Recording (picture only; the microphone is not recorded)'),
+  );
   try {
     const blob = await done;
     const ext = videoExt(clip.type);
@@ -969,6 +1028,7 @@ el.btnRecord.addEventListener('click', async () => {
   } catch {
     toast(L('動画を作れませんでした', 'Could not make the video'));
   } finally {
+    if (micOn) engine.recordMic(false);
     el.btnRecord.setAttribute('aria-pressed', 'false');
     el.btnRecordText.textContent = RECORD_LABEL;
     clip = null;

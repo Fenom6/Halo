@@ -31,8 +31,9 @@
 - **指で鳴らす**：螺旋に触れると、最も近い半音の音が倍音つきで鳴り、そのまま光の輪に表示されます。複数の指で和音を鳴らせます（最大4音）
   - **鍵盤**：主音から1オクターブの13鍵を、光の輪の下に出せます（指をすべらせると隣の鍵へ。オクターブは −／＋）。キーボードでも弾けます（Tab で鍵へ移り、Enter かスペースを押しているあいだ鳴る）
   - **なめらか**：半音にそろえず、指の位置そのままの高さで鳴らします（ポルタメント）。倍音の光も一緒に滑ります
+- **ファイル**：MP3・M4A（AAC）・WAV・OGG・FLAC などの音のファイルを読めます。パソコンでは、ファイルを画面へドラッグしても読めます
 - **画像として保存**：表示中の光の輪を、音名と日時入りの PNG 画像として保存・共有できます
-- **録画**：光の動きを、最長 30 秒の動画（iPhone は MP4、Android・パソコンは WebM）にして保存・共有できます。カノン・指で鳴らす・ファイルの音は動画に入ります。マイクの音は入れません
+- **録画**：光の動きを、最長 30 秒の動画（iPhone は MP4、Android・パソコンは WebM）にして保存・共有できます。カノン・指で鳴らす・ファイルの音は動画に入ります。マイクで聴いているときは、録画のたびに「マイクの音も入れる」か「光の動きだけ」かを選べます（歌や演奏の記録に）
 - **すばやい光**：高い音（約 400 Hz より上）の光は、短い時間だけを見るもう1つの観察窓で描くので、以前の4倍速く動きます。低い音は細かい観察窓のまま（和音の形がくっきり）
 - **見た目**：光背の下のパレットの印から選べます（端末に保存）
   - 光の色：金・朱・青・紫・虹。虹は音名ごとに色が決まり（12時の主音が赤）、和音が色の組み合わせとして見えます
@@ -67,9 +68,9 @@
 
 ## プライバシー
 
-- マイクの音は端末内でのみ処理され、録音・送信は行いません
+- マイクの音は端末内でのみ処理され、送信は行いません
 - 画像の保存は、利用者が「残す」を押したときだけ端末内で行います
-- 動画は「録画」を押したときだけ端末内で作ります。マイクの音は動画に入れません
+- 動画は「録画」を押したときだけ端末内で作ります。マイクの音は、録画のときに「マイクの音も入れる」を選んだときだけ動画に入ります
 - マイクの自動音量調整・雑音除去は、測定を正確にするためオフにしています
 - 外部への通信は、文字（Google Fonts）の読み込みのみです
 
@@ -158,7 +159,7 @@ tools/                開発用ツール（サーバー・点検・アイコン�
 - **Play by touch**: touch the spiral to play the nearest semitone (with harmonics); up to four fingers for chords. Optional 13-key keyboard under the halo, and a glide mode (portamento) that follows your finger without snapping
 - **Fast rays**: high notes (above about 400 Hz) are drawn from a second, short analyser, so they move four times faster; low notes keep the fine analyser for crisp chord shapes
 - **Look** (palette button under the halo): light color in gold, vermilion, blue, purple or rainbow (rainbow colors each note name, so chords show as color sets); trail length (0.4 / 1.2 / 3 s); screen brightness (normal / a little darker / darker)
-- **Record**: save the moving halo as a video of up to 30 s (MP4 on iPhone, WebM elsewhere). Canon, touch and file sound go in; the microphone never does
+- **Record**: save the moving halo as a video of up to 30 s (MP4 on iPhone, WebM elsewhere). Canon, touch and file sound go in; while listening with the microphone you choose each time whether to include it
 - **Save as image**, **works offline**, **add to home screen**, and built-in explanations (reading the ring, physics, math, music, code)
 
 The microphone needs the page to be served over **https**. Sound is processed on the device only; nothing is recorded or sent.

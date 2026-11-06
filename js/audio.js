@@ -321,6 +321,21 @@ export class AudioEngine extends EventTarget {
     return out;
   }
 
+  /**
+   * 録画にマイクの音も入れる（on）／やめる（off）。利用者が録画のときに選んだときだけ呼ぶ。
+   * マイクの音は、動画を作るためだけに録画用の流れへつなぐ（スピーカーには出さない・どこへも送らない）
+   */
+  recordMic(on) {
+    if (!this.recordDest || !this.mediaSource) return false;
+    try {
+      if (on) this.mediaSource.connect(this.recordDest);
+      else this.mediaSource.disconnect(this.recordDest);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   /** 速い観察窓の dB の並び。速い観察窓がなければ null */
   getFastFreqData(out) {
     if (!this.fastAnalyser) return null;
@@ -337,8 +352,18 @@ export class AudioEngine extends EventTarget {
     if (!this.recordDest) {
       this.recordDest = this.ctx.createMediaStreamDestination();
       this.output.connect(this.recordDest);
+      // 無音の源を1つつないでおく。鳴らす音が1つもない間も、音の流れが途切れないように
+      // （途切れると、止めたあとの録画で、動画に音の筋そのものが入らないことがある）
+      if (typeof this.ctx.createConstantSource === 'function') {
+        const keep = this.ctx.createConstantSource();
+        keep.offset.value = 0;
+        keep.connect(this.recordDest);
+        keep.start();
+      }
     }
-    return this.recordDest.stream.getAudioTracks()[0] || null;
+    // 録画ごとに写し（clone）を渡す。同じ流れを何度も録画に使い回すと、止めたあとの録画で音が入らないことがあるため
+    const track = this.recordDest.stream.getAudioTracks()[0];
+    return track ? track.clone() : null;
   }
 
   afterStart() {

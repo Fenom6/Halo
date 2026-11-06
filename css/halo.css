@@ -1459,3 +1459,44 @@ dialog.kh-look-sheet::backdrop {
     padding: var(--sp-1) 6px;
   }
 }
+
+/* ---------- ファイル：対応形式の説明と、ドラッグ中の光背 ---------- */
+.kh-file-hint {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+.kh-stage[data-drop="on"] {
+  outline: 3px dashed var(--accent);
+  outline-offset: -3px;
+}
+
+/* ---------- 録画：マイクの音も入れるか ---------- */
+.kh-rec-choices {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+/* 縦長のタブレットなど（左右に並べない画面）：見た目の窓は、まん中に浮かせず下にぴったり付ける。
+   後ろを暗くしないので、浮かせると窓のまわりに鍵盤やボタンが見えて重なって見えるため */
+@media (min-width: 640px) {
+  dialog.kh-look-sheet {
+    margin: auto auto 0;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+  }
+}
+
+/* ---------- 見た目の窓：広い画面・横向きでは、右の操作の列を覆う引き出しにする
+   （光背は見えたまま、窓の外に鍵盤やボタンがはみ出して重なって見えないように）。条件は、左右に並べる画面と同じ ---------- */
+@media (min-width: 720px) and (orientation: landscape), (min-width: 1000px) {
+  dialog.kh-look-sheet {
+    margin: 0 0 0 auto;
+    width: min(440px, 46vw);
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 16px 0 0 16px;
+    box-shadow: -12px 0 32px rgb(0 0 0 / 0.6);
+  }
+}
