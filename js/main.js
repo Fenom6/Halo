@@ -917,19 +917,51 @@ function footerText(when) {
 }
 
 /**
- * できあがったファイルを、スマホでは共有の画面へ（写真に保存・家族や友だちに送る）。共有できなければ、ファイルとして保存する。
+ * 共有するか、ダウンロードするかをたずねる。
+ * 共有の画面には「ファイルとして保存」がない端末がある（Windows の共有の画面には、Google ドライブも出ない）ため、
+ * いつでもふつうのファイルとして保存できるようにする。
+ * 返り値は 'shared' | 'cancelled' | 'download' | 'failed'
+ */
+function askShareOrDownload(shareData) {
+  const dlg = $('#dlg-out');
+  const shareBtn = $('#out-share');
+  return new Promise((resolve) => {
+    let sharing = null;
+    const onShare = (e) => {
+      // 押したその場で共有の画面を開く（スマホのブラウザは「押した直後」でないと共有の画面を開かせないため）
+      e.preventDefault();
+      sharing = navigator.share(shareData).then(
+        () => 'shared',
+        (err) => (err && err.name === 'AbortError' ? 'cancelled' : 'failed'),
+      );
+      dlg.close('share');
+    };
+    shareBtn.addEventListener('click', onShare);
+    dlg.addEventListener(
+      'close',
+      () => {
+        shareBtn.removeEventListener('click', onShare);
+        if (sharing) sharing.then(resolve);
+        else resolve(dlg.returnValue === 'download' ? 'download' : 'cancelled');
+      },
+      { once: true },
+    );
+    openDialog(dlg);
+  });
+}
+
+/**
+ * できあがったファイルを、共有の画面へ（写真に保存・家族や友だちに送る）か、ダウンロードへ。
+ * 共有できない端末や、共有に失敗したときは、ファイルとして保存する。
  * 返り値は 'shared' | 'cancelled' | 'saved' | 'declined' | 'failed' | 'unavailable'
  */
 async function shareOrSave(blob, name, type) {
   const file = typeof File === 'function' ? new File([blob], name, { type }) : null;
   if (!isEmbedded && file && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      // 送り先で、何のアプリで作ったか分かるように、ひとこととページの場所を添える（#光背Halo ／ #HaloPitch。#Halo は有名なゲームの名前と重なって埋もれるため使わない）
-      await navigator.share({ files: [file], title: L('光背 Halo', 'Halo'), text: L('光背 Halo で観た音 #光背Halo https://fenom6.github.io/Halo/', 'Sound seen with Halo #HaloPitch https://fenom6.github.io/Halo/') });
-      return 'shared';
-    } catch (err) {
-      if (err && err.name === 'AbortError') return 'cancelled';
-    }
+    // 送り先で、何のアプリで作ったか分かるように、ひとこととページの場所を添える（#光背Halo ／ #HaloPitch。#Halo は有名なゲームの名前と重なって埋もれるため使わない）
+    const r = await askShareOrDownload({ files: [file], title: L('光背 Halo', 'Halo'), text: L('光背 Halo で観た音 #光背Halo https://fenom6.github.io/Halo/', 'Sound seen with Halo #HaloPitch https://fenom6.github.io/Halo/') });
+    if (r === 'shared' || r === 'cancelled') return r;
+    // 'download' を選んだとき、または共有に失敗したとき → ファイルとして保存する
   }
   return saveFile(name, blob, type);
 }

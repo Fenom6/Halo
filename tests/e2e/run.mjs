@@ -434,6 +434,37 @@ try {
     await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
   });
 
+  await check('残す（共有できる端末）：共有かダウンロードかを選べる。ダウンロードを選ぶとファイルになり、✕ では何も起きない', async () => {
+    await page.evaluate(() => {
+      window.__shared = 0;
+      navigator.canShare = () => true;
+      navigator.share = async () => { window.__shared++; };
+    });
+    // ダウンロード：共有の画面は開かず、ふつうのファイル（PNG）として保存する
+    await page.click('#btn-save');
+    await page.waitForSelector('#dlg-out[open]', { timeout: 8000 });
+    await shot('k03b-share-or-download');
+    const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 8000 }), page.click('#out-download')]);
+    expect(/^kouhai-\d{8}-\d{6}\.png$/.test(dl.suggestedFilename()), dl.suggestedFilename());
+    expect((await page.evaluate(() => window.__shared)) === 0, 'ダウンロードを選んだのに共有の画面を開いた');
+    // 共有：共有の画面を開く
+    await page.click('#btn-save');
+    await page.waitForSelector('#dlg-out[open]', { timeout: 8000 });
+    await page.click('#out-share');
+    await page.waitForFunction(() => window.__shared === 1, null, { timeout: 5000 });
+    // ✕：何も保存しない
+    let downloaded = false;
+    const onDl = () => { downloaded = true; };
+    page.on('download', onDl);
+    await page.click('#btn-save');
+    await page.waitForSelector('#dlg-out[open]', { timeout: 8000 });
+    await page.click('#dlg-out .sheet-head button');
+    await page.waitForTimeout(600);
+    page.off('download', onDl);
+    expect(!downloaded && (await page.evaluate(() => window.__shared)) === 1, '✕ で閉じたのに保存か共有をした');
+    await page.evaluate(() => { delete navigator.share; delete navigator.canShare; delete window.__shared; });
+  });
+
   await check('録画（保存中）：共有の窓が開いている間は次の録画を始められず、終わると元に戻る', async () => {
     await page.click('#btn-mic');
     await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'ラ', null, { timeout: 10000 });
@@ -447,7 +478,9 @@ try {
     await page.click('#rec-with-mic');
     await page.waitForFunction(() => document.querySelector('#btn-record').getAttribute('aria-pressed') === 'true', null, { timeout: 5000 });
     await page.waitForTimeout(1200);
-    await page.click('#btn-record'); // 止める → 保存（共有）へ
+    await page.click('#btn-record'); // 止める → 共有かダウンロードかをたずねる
+    await page.waitForSelector('#dlg-out[open]', { timeout: 10000 });
+    await page.click('#out-share');
     await page.waitForFunction(() => typeof window.__finishShare === 'function', null, { timeout: 10000 });
     expect((await text('#btn-record-text')) === '保存中…', `保存中の表示が「${await text('#btn-record-text')}」`);
     expect((await page.getAttribute('#btn-record', 'aria-pressed')) === 'false', '保存中なのに「録画中」のまま');
