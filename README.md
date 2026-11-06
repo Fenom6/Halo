@@ -99,10 +99,12 @@ npm run serve
 | --- | --- |
 | `npm test` | 単体テスト（螺旋の計算、楽譜と旋律の判定、音の高さの判定、世界の音名と基準の高さ、オフライン処理、ページ内の数値と実装の一致） |
 | `npm run check` | 全ファイルの構文と、オフライン用ファイル一覧（`sw.js`）の点検 |
-| `npm run serve` | ローカルサーバー（http://localhost:8080/） |
+| `npm run serve` | ローカルサーバー（http://localhost:8080/）。このパソコンの中からだけ開けます。隠しファイル（`.git` など）は返しません |
 | `npm run e2e` | ブラウザ（Chromium）による画面の通しテスト。Playwright が必要です |
 | `npm run build:artifact` | 1ファイル版（`dist/halo-artifact.html`）の生成 |
 | `npm run icons` | アイコンの再生成（`tools/icon.mjs`） |
+
+同じ Wi-Fi のスマホから開いて試したいときだけ、`HOST=0.0.0.0 npm run serve` で起動します（そのあいだは、同じネットワークのだれでも開けます。使い終わったら止めてください。マイクは https でないと使えないため、スマホではマイク以外の確認向けです）。
 
 画面テストを実行するには、先に Playwright を入れます。
 
@@ -164,6 +166,6 @@ tools/                開発用ツール（サーバー・点検・アイコン�
 
 The microphone needs the page to be served over **https**. Sound is processed on the device only; nothing is recorded or sent.
 
-Development: Node.js 20+, no dependencies. `npm test` runs the unit tests, `npm run serve` starts a local server, `npm run e2e` runs browser tests (needs Playwright).
+Development: Node.js 20+, no dependencies. `npm test` runs the unit tests, `npm run serve` starts a local server (loopback only; hidden files such as `.git` are never served), `npm run e2e` runs browser tests (needs Playwright).
 
 License: [MIT](LICENSE). Music: Johann Pachelbel, Canon in D (public domain), synthesized in the app. Fonts: Google Fonts (SIL Open Font License).
