@@ -434,6 +434,40 @@ try {
     await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
   });
 
+  await check('録画（保存中）：共有の窓が開いている間は次の録画を始められず、終わると元に戻る', async () => {
+    await page.click('#btn-mic');
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'ラ', null, { timeout: 10000 });
+    // 共有の窓が開いたままの状態をつくる（閉じるのは、このテストが決める）
+    await page.evaluate(() => {
+      navigator.canShare = () => true;
+      navigator.share = () => new Promise((resolve) => { window.__finishShare = resolve; });
+    });
+    await page.click('#btn-record');
+    await page.waitForSelector('#dlg-rec[open]');
+    await page.click('#rec-with-mic');
+    await page.waitForFunction(() => document.querySelector('#btn-record').getAttribute('aria-pressed') === 'true', null, { timeout: 5000 });
+    await page.waitForTimeout(1200);
+    await page.click('#btn-record'); // 止める → 保存（共有）へ
+    await page.waitForFunction(() => typeof window.__finishShare === 'function', null, { timeout: 10000 });
+    expect((await text('#btn-record-text')) === '保存中…', `保存中の表示が「${await text('#btn-record-text')}」`);
+    expect((await page.getAttribute('#btn-record', 'aria-pressed')) === 'false', '保存中なのに「録画中」のまま');
+    // 保存のあいだに押しても、録画の質問も新しい録画も始まらない
+    await page.click('#btn-record');
+    await page.waitForTimeout(400);
+    expect(!(await page.locator('#dlg-rec[open]').count()), '保存中に、次の録画の質問が開いた');
+    expect((await page.getAttribute('#btn-record', 'aria-pressed')) === 'false', '保存中に、次の録画が始まった');
+    expect((await text('#btn-record-text')) === '保存中…', '保存中の表示が書きかわった');
+    await page.evaluate(() => window.__finishShare());
+    await page.waitForFunction(() => document.querySelector('#btn-record-text').textContent === '録画', null, { timeout: 5000 });
+    await page.evaluate(() => { delete navigator.share; delete navigator.canShare; delete window.__finishShare; });
+    // 終わったあとは、また録画できる
+    await page.click('#btn-record');
+    await page.waitForSelector('#dlg-rec[open]');
+    await page.click('#dlg-rec .sheet-head button');
+    await page.click('#btn-mic');
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
+  });
+
   await check('ファイル：対応形式の説明があり、音のファイルを画面へドラッグすると読める', async () => {
     expect((await text('.kh-file-hint')).includes('MP3') && (await text('.kh-file-hint')).includes('WAV'), '対応形式の説明がない');
     expect((await page.getAttribute('#file-input', 'accept')).includes('.flac'), 'ファイルの選び方に形式が書かれていない');
