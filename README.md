@@ -26,6 +26,8 @@
   - 音名の表し方：ドレミ・C D E・ドイツ式（H）・固定ド（Do Re Mi）・移動ド・インドのサルガム（Sa Re Ga）・数字譜（1 2 3）
   - 主音：選んだ音を12時に置き、螺旋を回します（どの調でも音階が同じ形に見えます）
   - 四分音：半音の半分の音を「ミ−¼」のように呼びます（アラブ・トルコ・ペルシャの音楽向け）
+- **最初の3秒の案内**：初めて開いたときに1回だけ、ドから時計回りに光が巡り、「12時がド、1周で1オクターブ」が目でわかります（「i」の見方から、もう一度流せます）
+- **マイクを止められたときの手順**：iPhone・Android・パソコン・Firefox ごとに、どこを押せば許可しなおせるかを出します
 - **すぐ試せる**：最初の画面の「例 ▶ カノンを聴いてみる」を押すと、そのまま鳴り始めます
 - **サンプル：パッヘルベル「カノン ニ長調」**：楽譜から音をその場で合成します（録音ではありません）。低音・第1〜3声を選んで鳴らせるので、3つの声が同じ旋律を2小節ずつ遅れて追いかける「カノン」の構造を、光の動きで確かめられます。3つの声は朱・空色・藤色に色分けされます
 - **指で鳴らす**：螺旋に触れると、最も近い半音の音が倍音つきで鳴り、そのまま光の輪に表示されます。複数の指で和音を鳴らせます（最大4音）
@@ -161,6 +163,8 @@ tools/                開発用ツール（サーバー・点検・アイコン�
 - **Play by touch**: touch the spiral to play the nearest semitone (with harmonics); up to four fingers for chords. Optional 13-key keyboard under the halo, and a glide mode (portamento) that follows your finger without snapping
 - **Fast rays**: high notes (above about 400 Hz) are drawn from a second, short analyser, so they move four times faster; low notes keep the fine analyser for crisp chord shapes
 - **Look** (palette button under the halo): light color in gold, vermilion, blue, purple or rainbow (rainbow colors each note name, so chords show as color sets); trail length (0.4 / 1.2 / 3 s); screen brightness (normal / a little darker / darker)
+- **3-second intro** on first visit: a light goes round from C clockwise, so “C at 12 o'clock, one octave per turn” is clear at a glance (replay it from “i”)
+- **Microphone blocked?** Step-by-step instructions for iPhone, Android, computers and Firefox
 - **Record**: save the moving halo as a video of up to 30 s (MP4 on iPhone, WebM elsewhere). Canon, touch and file sound go in; while listening with the microphone you choose each time whether to include it
 - **Save as image**, **works offline**, **add to home screen**, and built-in explanations (reading the ring, physics, math, music, code)
 

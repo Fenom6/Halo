@@ -144,6 +144,30 @@ const overflow = (p = page) => p.evaluate(() => document.documentElement.scrollW
 try {
   await page.goto(`http://localhost:${PORT}/`);
 
+  await check('初めて開くと、3秒の案内：ドから時計回りに光が巡り、終わると例の絵に戻る。2回目からは流れない', async () => {
+    await page.waitForFunction(() => document.documentElement.dataset.intro === 'on', null, { timeout: 5000 });
+    await page.waitForFunction(() => document.querySelector('.kouhai-pc.is-lit'), null, { timeout: 3000 });
+    const first = await page.evaluate(() => [document.querySelector('.kouhai-pc.is-lit').textContent, document.querySelector('#kouhai-note').textContent]);
+    expect(first[1] === 'ド' || first[1] === 'ド♯', `案内の初めの音が「${first.join(' / ')}」`);
+    expect((await page.getAttribute('#kouhai-center', 'data-state')) === 'intro', '案内のあいだ、まん中が音名の表示にならない');
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'ファ♯', null, { timeout: 4000 });
+    expect((await page.locator('.kouhai-pc.is-lit').innerText()) === 'ファ♯', '♯の音も、光るあいだは名前が出る');
+    await shot('k00-intro');
+    await page.waitForFunction(() => !document.documentElement.dataset.intro, null, { timeout: 5000 });
+    expect((await page.locator('.kouhai-pc.is-lit').count()) === 0, '案内のあとも音名が光ったまま');
+    expect((await page.getAttribute('#kouhai-center', 'data-state')) === 'idle', '案内のあと、まん中が「タップで聴く」に戻らない');
+    await page.reload();
+    await page.waitForFunction(() => document.querySelector('#kh-hz').textContent.includes('例'), null, { timeout: 10000 });
+    await page.waitForTimeout(1500);
+    expect(!(await page.evaluate(() => document.documentElement.dataset.intro)), '2回目も案内が流れた');
+    // 「i」の見方から、もう一度流せる
+    await page.click('#btn-about');
+    await page.waitForSelector('#dlg-about[open]');
+    await page.click('#btn-intro');
+    await page.waitForFunction(() => document.documentElement.dataset.intro === 'on', null, { timeout: 3000 });
+    await page.waitForFunction(() => !document.documentElement.dataset.intro, null, { timeout: 6000 });
+  });
+
   await check('開くと、例（カノンの3つの声がそろったところ）の光背と、12の音名が出る。横にはみ出さない', async () => {
     await page.waitForFunction(() => document.querySelector('#kh-hz').textContent.includes('例'), null, { timeout: 10000 });
     expect((await page.locator('#kouhai-dial .kouhai-pc').count()) === 12, '音名が12個ない');
@@ -630,6 +654,23 @@ try {
     expect(cut[1] <= 0 && cut[2] <= 0, `幅 320 px で「${cut[0]}」が省略される（${cut[1]} px）・はみ出し ${cut[2]} px`);
     await shot('k13-english-320');
     await page.setViewportSize({ width: 390, height: 844 });
+  });
+
+  await check('マイクが止められているとき：端末に合わせた「許可しなおす手順」を、1行ずつ出す', async () => {
+    const p2 = await context.newPage();
+    await p2.addInitScript(() => {
+      navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('denied', 'NotAllowedError'));
+    });
+    await p2.goto(`http://localhost:${PORT}/`);
+    await p2.waitForFunction(() => document.querySelector('#kh-hz').textContent.includes('例'), null, { timeout: 10000 });
+    await p2.click('#btn-mic');
+    await p2.waitForSelector('#mic-error:not([hidden])', { timeout: 5000 });
+    const msg = await p2.locator('#mic-error').innerText();
+    for (const w of ['許可されていません', '1.', '2.', '3.', 'アドレス欄', '読み込みなおして', 'カノン']) expect(msg.includes(w), `手順に「${w}」がない：${msg}`);
+    const ws = await p2.evaluate(() => getComputedStyle(document.querySelector('#mic-error')).whiteSpace);
+    expect(ws === 'pre-line', '手順が1行ずつに分かれない');
+    await shot('k14-mic-denied', p2);
+    await p2.close();
   });
 
   await check('エラーが1つも出ていない', async () => {

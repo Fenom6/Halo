@@ -189,6 +189,21 @@ export class KouhaiStage {
     this.view.draw(db, [midi], { still: true });
   }
 
+  /**
+   * まわりの音名の k 番目（12時から時計回り）を光らせる。null で消す（最初の案内で使う）。
+   * ♯・♭ の付く音はふだん点だけなので、光らせるあいだは名前 name を出す
+   */
+  light(k = null, name = '') {
+    this.labels.forEach((lab, i) => {
+      const on = i === k;
+      lab.classList.toggle('is-lit', on);
+      if (lab.classList.contains('is-sharp')) {
+        if (!lab.dataset.dot) lab.dataset.dot = lab.textContent;
+        lab.textContent = on && name ? name : lab.dataset.dot;
+      }
+    });
+  }
+
   clear() {
     this.view.clear();
   }

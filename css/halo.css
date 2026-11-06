@@ -1018,6 +1018,7 @@ dialog::backdrop {
 .kh-error {
   color: var(--danger);
   background: var(--danger-soft);
+  white-space: pre-line; /* マイクを許可しなおす手順を、1行に1つずつ */
 }
 .kh-note-box {
   color: var(--ink-2);
@@ -1498,5 +1499,30 @@ dialog.kh-look-sheet::backdrop {
     max-height: 100dvh;
     border-radius: 16px 0 0 16px;
     box-shadow: -12px 0 32px rgb(0 0 0 / 0.6);
+  }
+}
+
+/* ---------- 最初の案内（3秒）：いま光っている音名 ---------- */
+.kouhai-pc {
+  transition: color 0.15s, transform 0.15s;
+}
+.kouhai-pc.is-lit {
+  color: var(--spec-mark);
+  transform: translate(-50%, -50%) scale(1.45);
+  opacity: 1;
+}
+.kouhai-pc.is-sharp.is-lit {
+  font-size: 0.8125rem;
+}
+.kouhai-center[data-state="intro"] {
+  pointer-events: none;
+}
+.kouhai-center[data-state="intro"] .kouhai-center-icon,
+.kouhai-center[data-state="intro"] .kouhai-hint {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kouhai-pc {
+    transition: none;
   }
 }
