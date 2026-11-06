@@ -434,7 +434,7 @@ try {
     await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
   });
 
-  await check('残す（共有できる端末）：共有かダウンロードかを選べる。ダウンロードを選ぶとファイルになり、✕ では何も起きない', async () => {
+  await check('残す（パソコン）：共有かダウンロードかを選べる。ダウンロードを選ぶとファイルになり、✕ では何も起きない', async () => {
     await page.evaluate(() => {
       window.__shared = 0;
       navigator.canShare = () => true;
@@ -463,6 +463,27 @@ try {
     page.off('download', onDl);
     expect(!downloaded && (await page.evaluate(() => window.__shared)) === 1, '✕ で閉じたのに保存か共有をした');
     await page.evaluate(() => { delete navigator.share; delete navigator.canShare; delete window.__shared; });
+  });
+
+  await check('残す（スマホ）：指で操作する端末では、窓を出さずにすぐ共有の画面を開く', async () => {
+    const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'ja-JP', acceptDownloads: true });
+    try {
+      const p = await phone.newPage();
+      await p.addInitScript(() => {
+        localStorage.setItem('halo.prefs.v1', JSON.stringify({ introSeen: true })); // 3秒の案内は飛ばす
+        window.__shared = 0;
+        navigator.canShare = () => true;
+        navigator.share = async () => { window.__shared++; };
+      });
+      await p.goto(`http://localhost:${PORT}/`);
+      await p.waitForFunction(() => document.querySelector('#kh-hz').textContent.includes('例'), null, { timeout: 10000 });
+      expect(await p.evaluate(() => matchMedia('(hover: none) and (pointer: coarse)').matches), 'スマホのふりができていない');
+      await p.click('#btn-save');
+      await p.waitForFunction(() => window.__shared === 1, null, { timeout: 8000 });
+      expect(!(await p.locator('#dlg-out[open]').count()), 'スマホなのに、共有かダウンロードかの窓が開いた');
+    } finally {
+      await phone.close();
+    }
   });
 
   await check('録画（保存中）：共有の窓が開いている間は次の録画を始められず、終わると元に戻る', async () => {
