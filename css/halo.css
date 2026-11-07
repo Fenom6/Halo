@@ -1410,6 +1410,13 @@ dialog::backdrop {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+/* 座標と光だけ のときは軌跡を描かないので、軌跡の選び方を薄くする */
+.lk-group:disabled {
+  opacity: 0.45;
+}
+.lk-group:disabled .lk-chip {
+  cursor: not-allowed;
+}
 .lk-swatch {
   display: inline-block;
   width: 28px;
