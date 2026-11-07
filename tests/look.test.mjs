@@ -4,15 +4,15 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { HUES, TRAILS, DIMS, DEFAULT_LOOK, normalizeLook, rainbowTable } from '../js/look.js';
 
-test('はじめの見た目は、これまでと同じ（金・短い軌跡・そのままの明るさ）', () => {
-  assert.deepEqual({ ...DEFAULT_LOOK }, { view: 'full', hue: 'kin', trail: 'short', dim: 0 });
+test('はじめの見た目は、座標と光だけ・金・短い軌跡・そのままの明るさ', () => {
+  assert.deepEqual({ ...DEFAULT_LOOK }, { view: 'pure', hue: 'kin', trail: 'short', dim: 0 });
   assert.equal(TRAILS.short.frames, 24, 'これまでの軌跡の長さ（24 コマ）');
 });
 
 test('こわれた・古い設定は、はじめの値に置きかえる', () => {
   assert.deepEqual(normalizeLook({}), { ...DEFAULT_LOOK });
   assert.deepEqual(normalizeLook({ hue: 'toString', trail: 'forever', dim: 0.9 }), { ...DEFAULT_LOOK });
-  assert.deepEqual(normalizeLook({ hue: 'niji', trail: 'long', dim: 0.55 }), { view: 'full', hue: 'niji', trail: 'long', dim: 0.55 });
+  assert.deepEqual(normalizeLook({ hue: 'niji', trail: 'long', dim: 0.55 }), { view: 'pure', hue: 'niji', trail: 'long', dim: 0.55 });
   assert.equal(normalizeLook({ dim: '0.3' }).dim, 0.3, '文字で覚えていても数にする');
 });
 
@@ -51,13 +51,13 @@ test('虹：12の向き × 3段。向きごとに色がちがい、段が上が�
   assert.ok(r > g && r > b, `12時は赤みがかった色（${t[0][1]}）`);
 });
 
-test('描くもの：はじめは「すべて」。「座標と光だけ」を選べて、こわれた値は「すべて」に戻る', async () => {
+test('描くもの：はじめは「座標と光だけ」。「すべて」を選べて、こわれた値・前の版の設定は「座標と光だけ」になる', async () => {
   const { VIEWS, isPure } = await import('../js/look.js');
-  assert.deepEqual(Object.keys(VIEWS), ['full', 'pure']);
+  assert.deepEqual(Object.keys(VIEWS), ['pure', 'full'], 'はじめの見た目を先に並べる');
   for (const v of Object.values(VIEWS)) assert.ok(v.ja && v.en);
-  assert.equal(normalizeLook({}).view, 'full', '前の版で覚えた設定（view がない）は、これまでどおり');
-  assert.equal(normalizeLook({ view: 'pure' }).view, 'pure');
-  assert.equal(normalizeLook({ view: 'constructor' }).view, 'full');
-  assert.equal(isPure({ view: 'pure' }), true);
-  assert.equal(isPure({}), false);
+  assert.equal(normalizeLook({}).view, 'pure', '前の版で覚えた設定（view がない）も、座標と光だけ');
+  assert.equal(normalizeLook({ view: 'full' }).view, 'full', '「すべて」を選んだ人は、そのまま');
+  assert.equal(normalizeLook({ view: 'constructor' }).view, 'pure');
+  assert.equal(isPure({}), true);
+  assert.equal(isPure({ view: 'full' }), false);
 });

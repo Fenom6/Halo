@@ -72,10 +72,15 @@ const STATUS = {
   sample: (name) => L(name, name),
   touch: () => L('鳴らし中', 'Touch'),
 };
-/** カノンを鳴らしているあいだ、絵の下に出す「観るところ」 */
+/** カノンを鳴らしているあいだ、絵の下に出す「観るところ」（すべて描くとき） */
 const CANON_LOOK = L(
   '3つの光が、同じ旋律を2小節（8拍）ずつ遅れて追いかけます。金の輪は低音（8つの音のくり返し）。3つの声がそろうと……。',
   'Three lights chase the same melody, each two bars (8 beats) behind. The gold ring is the bass (eight notes, over and over). When all three voices are in…',
+);
+/** 同じく、座標と光だけ のとき（追いかける光・金の輪・蓮は出ないので、千本の光の形を観る） */
+const CANON_LOOK_PURE = L(
+  '同じ旋律が2小節（8拍）ずつ遅れて重なり、光の向きが1つずつ増えていきます。3つの声がそろうと、和音の形になります。',
+  'The same melody comes in again every two bars (8 beats), so more directions light up one by one. With all three voices in, the rays form the shape of the chord.',
 );
 /** カノンの3つの声の色（CSS の --voice-1〜3）。窓の「鳴らす声」の印と同じ色 */
 const VOICE_TOKENS = ['voice-1', 'voice-2', 'voice-3'];
@@ -180,6 +185,10 @@ function applyLook(look) {
   applyLookToPage(look); // 光の色（CSS の --spec-1〜4）と、明るさの幕
   stage.view.setTrail(TRAILS[look.trail].frames);
   stage.setPure(isPure(look)); // 座標と光だけ：追いかける光・軌跡・低音の輪・蓮を描かない
+  if (lookHint) {
+    lookHint = isPure(look) ? CANON_LOOK_PURE : CANON_LOOK; // カノンの途中で切り替えたら、「観るところ」も合わせる
+    setCaption();
+  }
   stage.view.setRainbow(look.hue === 'niji' ? rainbowTable() : null);
   applyPalette(); // 新しい CSS の色を読み直して、光の色の表を作り直す
   if (showingExample && !engine.active) renderExample();
@@ -604,7 +613,7 @@ async function playCanon(parts) {
     }
     const buf = await engine.bufferFrom(samples, sr);
     pendingScore = canonScore(parts);
-    lookHint = CANON_LOOK;
+    lookHint = isPure(currentLook()) ? CANON_LOOK_PURE : CANON_LOOK;
     await engine.playBuffer(buf, { kind: 'sample', name: L('カノン', 'Canon') });
   } catch (e) {
     showError(e.message || String(e));
@@ -1210,7 +1219,7 @@ function runIntro() {
     }
     const n = describe(midiHz(start + k));
     stage.light(k, n.name);
-    stage.still(freq, freqToMidi(midiHz(start + k))); // 光（朱色の光）は、ラ＝440 Hz で数えた番号で置く
+    stage.still(freq, freqToMidi(midiHz(start + k)), true); // 光（朱色の光）は、ラ＝440 Hz で数えた番号で置く。座標と光だけ でも、案内では出す
     stage.setNote(n);
     paintCenter();
     el.caption.textContent = L(
