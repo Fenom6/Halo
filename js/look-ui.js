@@ -57,8 +57,8 @@ export function initLookSheet({ button, dialog, onChange }) {
     L('描くもの', 'What to draw'),
     Object.entries(VIEWS).map(([k, v]) => [k, v[LANG]]),
     L(
-      '「座標と光だけ」は、目盛り（螺旋・12本の筋・音名）と千本の光だけを描きます。追いかける3つの光と軌跡・低音の金の輪・蓮の花は出しません。速い曲や和音の多い曲で、光の形だけを静かに観たいときに。',
-      '“Only the grid and the rays” draws just the grid (spiral, 12 lines, note names) and the thousand rays. The three moving lights and their trails, the gold bass ring and the lotus are left out. Use it to watch only the shape of the light, for fast music or music with many chords.',
+      'はじめは「座標と光だけ」：目盛り（螺旋・12本の筋・音名）と千本の光だけを描き、光の形だけを静かに観られます。「すべて」にすると、今の高さを追いかける3つの光と軌跡・カノンの低音の金の輪・蓮の花も出ます。',
+      'By default, “Only the grid and the rays” draws just the grid (spiral, 12 lines, note names) and the thousand rays, so you can watch the shape of the light alone. “Everything” adds the three lights that follow the pitch and their trails, the gold bass ring of the canon, and the lotus.',
     ),
   );
   const hue = group(

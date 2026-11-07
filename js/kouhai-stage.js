@@ -184,9 +184,9 @@ export class KouhaiStage {
     if (this.score) this.view.setVoiceColors(list);
   }
 
-  /** 止まっているときに、今の高さ（MIDI 番号。なければ null）で描き直す */
-  still(db, midi = null) {
-    this.view.draw(db, [midi], { still: true });
+  /** 止まっているときに、今の高さ（MIDI 番号。なければ null）で描き直す。guide は最初の案内（座標と光だけ でも光を出す） */
+  still(db, midi = null, guide = false) {
+    this.view.draw(db, [midi], { still: true, guide });
   }
 
   /**

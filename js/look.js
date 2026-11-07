@@ -1,7 +1,7 @@
 /**
  * look.js — 見た目の設定：描くもの・光の色のテーマ・追いかける光の軌跡の長さ・画面の明るさ
  *
- *   描くもの … すべて（はじめ）か、座標と光だけ。座標と光だけ では、目盛り（螺旋・12本の筋・音名）と千本の光だけを描き、
+ *   描くもの … 座標と光だけ（はじめ）か、すべて。座標と光だけ では、目盛り（螺旋・12本の筋・音名）と千本の光だけを描き、
  *               追いかける3つの光と軌跡・低音の金の輪・蓮の花は描かない（速い曲や和音の多い曲でも、光の形だけを静かに観られる）
  *   光の色   … 金（はじめの色）・朱・青・紫 は「強さで色が変わる」5段の色の並びを、CSS の色（--spec-1〜4）で差し替える。
  *               虹 だけは、強さではなく「音名（向き）」で色を変える。12時の主音を赤にして、時計回りに色相環を1周する
@@ -12,10 +12,10 @@
  */
 import { oklabToRgb } from './colormap.js';
 
-/** 描くもの。full＝これまでと同じ。pure＝座標（目盛りと音名）と千本の光だけ */
+/** 描くもの。pure＝座標（目盛りと音名）と千本の光だけ（はじめの見た目）。full＝追いかける光・軌跡・低音の輪・蓮も描く */
 export const VIEWS = {
-  full: { ja: 'すべて（光・追いかける光・軌跡）', en: 'Everything (rays, moving lights, trails)' },
   pure: { ja: '座標と光だけ', en: 'Only the grid and the rays' },
+  full: { ja: 'すべて（光・追いかける光・軌跡）', en: 'Everything (rays, moving lights, trails)' },
 };
 
 /** 光の色のテーマ。stops は見本の色（窓の中の見本に使う。本当の色は css/halo.css の :root[data-hue=…]） */
@@ -41,7 +41,7 @@ export const DIMS = {
   0.55: { ja: '暗く', en: 'Darker' },
 };
 
-export const DEFAULT_LOOK = Object.freeze({ view: 'full', hue: 'kin', trail: 'short', dim: 0 });
+export const DEFAULT_LOOK = Object.freeze({ view: 'pure', hue: 'kin', trail: 'short', dim: 0 });
 
 /** おかしな値を、はじめの値に置きかえる（端末に覚えておいた値が古い・こわれている時のため） */
 export function normalizeLook(o = {}) {

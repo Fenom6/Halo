@@ -179,6 +179,17 @@ try {
     await shot('k01-start');
   });
 
+  await check('はじめの見た目は「座標と光だけ」（軌跡の長さは選べない）。ここから先の確かめのために「すべて」にする', async () => {
+    expect((await page.getAttribute('html', 'data-view')) === 'pure', `はじめの見た目が「${await page.getAttribute('html', 'data-view')}」`);
+    await page.click('#btn-look');
+    await page.waitForSelector('#dlg-look[open]');
+    expect(await page.isChecked('#dlg-look input[name="look-view"][value="pure"]'), '窓で「座標と光だけ」が選ばれていない');
+    expect(await page.$eval('#dlg-look .lk-trail', (f) => f.disabled), 'はじめから軌跡の長さを選べる');
+    await page.click('#dlg-look input[name="look-view"][value="full"]', { force: true });
+    await page.keyboard.press('Escape');
+    expect((await page.getAttribute('html', 'data-view')) === 'full', '「すべて」にならない');
+  });
+
   await check('最初の一歩：「例 ▶ カノンを聴いてみる」を押すと、声を選ぶ窓を通らずにすぐ鳴り始める', async () => {
     await page.click('#kh-badge');
     await page.waitForFunction(() => document.querySelector('#head-status-text').textContent.includes('カノン'), null, { timeout: 8000 });
@@ -654,6 +665,7 @@ try {
     await page.click('#dlg-look .tn-reset');
     await page.keyboard.press('Escape');
     expect((await page.getAttribute('html', 'data-hue')) === 'kin', '戻しても金にならない');
+    expect((await page.getAttribute('html', 'data-view')) === 'pure', '戻しても「座標と光だけ」にならない');
     expect((await page.getAttribute('html', 'data-dim')) === null, '戻しても暗いまま');
   });
 
@@ -669,6 +681,7 @@ try {
     await page.waitForSelector('#dlg-canon[open]');
     await page.click('#canon-play');
     await page.waitForFunction(() => document.querySelector('#head-status-text').textContent.includes('カノン'), null, { timeout: 8000 });
+    expect((await text('#kh-caption')).startsWith('観るところ：同じ旋律'), `座標と光だけの「観るところ」が「${await text('#kh-caption')}」`);
     await page.waitForTimeout(13000); // 3つの声がそろう 16 拍目（約 11.5 秒）をこえる：ふだんなら蓮が開くところ
     expect(await page.locator('#bloom').isHidden(), '座標と光だけなのに蓮が開いた');
     const px = await page.evaluate(() => {

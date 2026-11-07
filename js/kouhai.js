@@ -371,9 +371,10 @@ export class KouhaiView {
    * @param {Float32Array} db 高さごとの大きさ [dB]（AnalyserNode と同じ形）
    * @param {Array<number|null>} voices 3つの光の高さ（MIDI 番号。小数でもよい）。null は「光なし」
    * @param {{dt?:number, still?:boolean, bass?:number|null, fast?:Float32Array|null}} o dt は前のコマからのミリ秒。still は止まっているときの描き直し。
-   *   fast は速い観察窓（KOUHAI_FAST_FFT_SIZE 点）の dB の並び。あれば高い音の光をこちらで描く
+   *   fast は速い観察窓（KOUHAI_FAST_FFT_SIZE 点）の dB の並び。あれば高い音の光をこちらで描く。
+   *   guide は最初の案内（3秒）：座標と光だけ のときも、巡る朱色の光を描く（向きの読み方を教えるため）
    */
-  draw(db, voices = [], { dt = 16, still = false, bass = null, fast = null } = {}) {
+  draw(db, voices = [], { dt = 16, still = false, bass = null, fast = null, guide = false } = {}) {
     if (!this.w || !this.lut || !this.map) return;
     const ctx = this.ctx;
     // 前のコマを少しずつ地の色へ戻す（残像）。止まっているときは、きれいに描き直す
@@ -382,7 +383,7 @@ export class KouhaiView {
     ctx.globalAlpha = 1;
     if (still) for (const o of this.orbs) o.trail.length = 0;
     this.drawArms(db, fast);
-    if (this.pure) return; // 座標と光だけ：ここまで（目盛りと千本の光）
+    if (this.pure && !guide) return; // 座標と光だけ：ここまで（目盛りと千本の光）
     if (bass !== null && bass !== undefined) this.drawBass(bass);
     this.drawOrbs(voices, still ? 1e4 : dt);
   }
