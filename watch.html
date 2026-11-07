@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ja" data-theme="dark" class="black">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>見張りAIのカノン（学習用）— 光背 Halo</title>
+<meta name="description" content="見張るAIを、カノンの3つの声（物理の番人・要約係・人）に分けて学ぶページ。合成した例の会話で、本人の画面と第三者の画面を比べ、見逃し・空振り・渡ったデータの量を確かめる。">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=M+PLUS+1+Code:wght@400;500&family=Shippori+Mincho+B1:wght@600;800&display=swap">
+<link rel="stylesheet" href="css/halo.css">
+<link rel="stylesheet" href="css/watch.css">
+</head>
+<body>
+<header class="kh-head">
+  <div class="kh-head-inner">
+    <h1 class="kh-mark"><span class="kh-kanji">光背</span><span class="kh-sub">Halo</span></h1>
+    <p class="head-status"><span id="w-status">学習用</span></p>
+    <a class="kh-lang" href="index.html">光背へ戻る</a>
+  </div>
+</header>
+
+<main class="w-main" id="w-main">
+  <section class="w-intro" aria-labelledby="w-title">
+    <h2 id="w-title">見張りAIのカノン</h2>
+    <p>見張るしくみを、カノンの3つの声に分けて観ます。<strong>危ない所だけを、遅れて詳しく見る</strong>しくみです。</p>
+    <ol class="w-voices">
+      <li><b class="v-1">第1声 物理の番人</b>：声の大きさ・高さ・かぶり・間だけを、いつも測ります。覚えておくのは<strong>直前の 8 秒だけ</strong>で、古いものから捨てます。言葉の意味は聞きません。</li>
+      <li><b class="v-2">第2声 要約係</b>：第1声が合図したときだけ、覚えていた 8 秒を見て要約します（このページでは本物の AI のかわりに、測った数だけで要約します）。</li>
+      <li><b class="v-3">第3声 人（あなた）</b>：要約を読んで、本当に危ないかを決めます。</li>
+    </ol>
+    <p class="w-note">音は、AさんとBさんの声を合成した「例の会話」（60 秒）です。本物の人の声は使わず、どこへも送りません。</p>
+  </section>
+
+  <section class="w-controls" aria-label="操作">
+    <div class="w-row">
+      <button type="button" class="btn btn-primary btn-big" id="w-play">▶ 例の会話を流す</button>
+      <button type="button" class="btn" id="w-stop" disabled>■ 止める</button>
+    </div>
+    <fieldset class="kh-parts w-sens">
+      <legend>第1声の感度</legend>
+      <label class="kh-chip"><input type="radio" name="w-sens" value="high"><span>敏感</span></label>
+      <label class="kh-chip"><input type="radio" name="w-sens" value="mid" checked><span>ふつう</span></label>
+      <label class="kh-chip"><input type="radio" name="w-sens" value="low"><span>鈍感</span></label>
+    </fieldset>
+    <div class="w-row w-opts">
+      <label class="kh-chip"><input type="checkbox" id="w-sound" checked><span>音も鳴らす</span></label>
+      <label class="kh-chip"><input type="checkbox" id="w-fast"><span>3倍の速さ（音なし）</span></label>
+    </div>
+    <div class="w-time"><span id="w-clock">0.0</span> / 60 秒<i class="w-bar"><i id="w-bar-fill"></i></i></div>
+  </section>
+
+  <div class="w-tabs" role="tablist" aria-label="どちらの画面を見るか">
+    <button type="button" role="tab" class="w-tab" id="tab-self" aria-selected="true" aria-controls="w-self">本人の画面</button>
+    <button type="button" role="tab" class="w-tab" id="tab-third" aria-selected="false" aria-controls="w-third">第三者の画面</button>
+  </div>
+
+  <div class="w-views" data-view="self">
+    <section class="w-view w-self" id="w-self" role="tabpanel" aria-labelledby="tab-self">
+      <h3>本人の画面 <small>話している2人が見る</small></h3>
+      <div class="w-ring-wrap">
+        <canvas id="w-ring" class="w-ring" role="img" aria-label="2人の声の高さを光背の向きで、声の大きさを光の大きさで表した絵。合図のたびに外の輪が赤く光る。"></canvas>
+      </div>
+      <p class="w-legend"><span><i class="dot dot-a"></i>Aさん（低めの声）</span><span><i class="dot dot-b"></i>Bさん（高めの声）</span></p>
+      <div class="w-talk"><span>話した時間</span><i class="w-talk-bar"><i id="w-talk-a"></i><i id="w-talk-b"></i></i><span id="w-talk-text">—</span></div>
+      <p class="w-now" id="w-now" aria-live="polite">止まっています</p>
+      <div class="w-memory">
+        <p>第1声の記憶（直前 8 秒。左ほど古く、8 秒をこえると捨てる）</p>
+        <canvas id="w-mem" class="w-mem" aria-hidden="true"></canvas>
+        <p class="w-flow">捨てた：<b id="w-dropped">0.0</b> 秒　第三者に渡った：<b id="w-shared">0.0</b> 秒</p>
+      </div>
+    </section>
+
+    <section class="w-view w-third" id="w-third" role="tabpanel" aria-labelledby="tab-third">
+      <h3>第三者の画面 <small>その場にいない人が見る</small></h3>
+      <p class="w-third-note">見えるのは、合図があった所の直前 8 秒の数（大きさの記録）と、第2声の要約だけです。それ以外の会話は、ここには届きません。</p>
+      <p class="w-count">合図 <b id="w-alert-n">0</b> 回・届いた記録 <b id="w-shared2">0.0</b> 秒 / 経過 <b id="w-elapsed">0.0</b> 秒</p>
+      <ol class="w-alerts" id="w-alerts" aria-live="polite"></ol>
+      <p class="w-empty" id="w-empty">まだ合図はありません。</p>
+    </section>
+  </div>
+
+  <section class="w-result" id="w-result" hidden aria-labelledby="w-result-h">
+    <h3 id="w-result-h">答え合わせ</h3>
+    <p class="w-score" id="w-score"></p>
+    <canvas id="w-timeline" class="w-timeline" role="img" aria-label="60秒の会話の時間軸。上の帯が本当に危なかった所、下の印が合図の出た所。"></canvas>
+    <p class="w-legend"><span><i class="sw sw-danger"></i>本当に危なかった所</span><span><i class="sw sw-fine"></i>危なく見えるが、危なくない所</span><span><i class="sw sw-alert"></i>合図</span></p>
+    <ul class="w-answers" id="w-answers"></ul>
+    <p class="w-judge" id="w-judge"></p>
+    <h4>ここから学べること</h4>
+    <ul class="w-lessons">
+      <li><strong>見逃しは目に見えない</strong>：Bさんの「静かで冷たい言い方」は、声が小さく落ち着いているので、物理の番人には何も起きていないように見えます。合図が出ないことは、安全の証拠になりません。</li>
+      <li><strong>空振りは疲れを生む</strong>：2人の大笑いは、大きくてかぶるので「危ない」に見えます。合図が多すぎると、人は合図を読まなくなります。</li>
+      <li><strong>感度は交換条件</strong>：感度を変えて流しなおすと、「見逃し」と「空振り」と「第三者に渡った秒数」が、いっしょに動きます。どれかだけを良くすることはできません。決めるのは人です。</li>
+      <li><strong>誰が見るかで、道具の正体が変わる</strong>：本人の画面は、自分を整えるための鏡です。第三者の画面は、中身がどれほど控えめでも、見張りです。</li>
+    </ul>
+  </section>
+</main>
+<script type="module" src="js/watch-page.js"></script>
+</body>
+</html>

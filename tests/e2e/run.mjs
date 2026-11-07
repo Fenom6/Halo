@@ -815,6 +815,36 @@ try {
     await p2.close();
   });
 
+  await check('学習：見張りAIのカノン。例の会話を流すと合図が出て、本人の画面と第三者の画面を切り替えられ、最後に答え合わせが出る', async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`http://localhost:${PORT}/watch.html?speed=20`);
+    expect((await page.locator('.w-voices li').count()) === 3, 'カノンの3つの声の説明がない');
+    await page.click('#w-play');
+    await page.waitForFunction(() => document.querySelectorAll('.w-alert').length > 0, null, { timeout: 10000 });
+    await shot('w01-self');
+    await page.click('#tab-third');
+    expect(await page.locator('#w-third').isVisible(), '第三者の画面に切り替わらない');
+    expect(!(await page.locator('#w-self').isVisible()), 'スマホの幅で、本人の画面も出たまま');
+    await page.waitForSelector('#w-result:not([hidden])', { timeout: 10000 });
+    await page.locator('.w-alert .w-judge-btn').first().click();
+    await shot('w02-third');
+    const r = await page.evaluate(() => ({
+      alerts: document.querySelectorAll('.w-alert').length,
+      score: document.querySelector('#w-score').textContent,
+      judge: document.querySelector('#w-judge').textContent,
+      answers: document.querySelectorAll('#w-answers li').length,
+      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    }));
+    expect(r.alerts >= 4, `合図が ${r.alerts} 回`);
+    expect(r.score.includes('見逃し 1') && r.score.includes('第三者に渡った記録'), `答え合わせが「${r.score}」`);
+    expect(r.judge.includes('1 回のうち'), `あなたの判断の答え合わせが「${r.judge}」`);
+    expect(r.answers === 6, '答えの一覧が6つない');
+    expect(r.overflow <= 0, '横にはみ出している');
+    await page.locator('#w-result').scrollIntoViewIfNeeded();
+    await shot('w03-result');
+    await page.goto(`http://localhost:${PORT}/`);
+  });
+
   await check('エラーが1つも出ていない', async () => {
     expect(errors.length === 0, errors.join(' / '));
   });

@@ -47,7 +47,7 @@ for (const f of shell) {
   }
 }
 
-const PAGES = ['index.html', 'en.html'];
+const PAGES = ['index.html', 'en.html', 'watch.html'];
 for (const page of PAGES) {
   if (!shell.includes(page)) fail(`sw.js の SHELL に ${page} がありません`);
   const html = await readFile(page, 'utf8');

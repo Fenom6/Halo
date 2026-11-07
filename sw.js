@@ -5,7 +5,7 @@
  * ネットにつながらないときは、しまっておいたものを使う。
  * 部品を変えたら VERSION の数字を上げること（古いしまい物を入れかえるため）。
  */
-const VERSION = 'halo-1.10.0';
+const VERSION = 'halo-1.11.0';
 
 const SHELL = [
   './',
@@ -14,6 +14,8 @@ const SHELL = [
   'en.html',
   'manifest-en.webmanifest',
   'css/halo.css',
+  'watch.html',
+  'css/watch.css',
   'icons/icon.svg',
   'icons/icon-192.png',
   'icons/apple-touch-icon.png',
@@ -38,6 +40,8 @@ const SHELL = [
   'js/tuning-ui.js',
   'js/tuning.js',
   'js/ui.js',
+  'js/watch-page.js',
+  'js/watch.js',
 ];
 
 self.addEventListener('install', (event) => {
