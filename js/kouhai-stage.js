@@ -247,8 +247,24 @@ export class KouhaiStage {
     this.el.oct.textContent = n ? n.en : '';
   }
 
-  /** 蓮の花を開く（光背の上に重ねて、しばらくして消える） */
+  /** 座標と光だけにする（true）か、すべて描く（false）か。座標と光だけ のあいだは、蓮の花も開かない */
+  setPure(on) {
+    this.view.setPure(on);
+    if (on) this.closeBloom();
+  }
+
+  /** 開いている蓮を、すぐ閉じる */
+  closeBloom() {
+    const { bloom, frame } = this.el;
+    clearTimeout(this.bloomTimer);
+    bloom.hidden = true;
+    bloom.classList.remove('is-open');
+    delete frame.dataset.bloom;
+  }
+
+  /** 蓮の花を開く（光背の上に重ねて、しばらくして消える）。座標と光だけ のときは開かない */
   bloom() {
+    if (this.view.pure) return;
     const { bloom, frame } = this.el;
     clearTimeout(this.bloomTimer);
     bloom.hidden = false;
@@ -256,10 +272,6 @@ export class KouhaiStage {
     void bloom.offsetWidth; // アニメーションを最初から
     bloom.classList.add('is-open');
     frame.dataset.bloom = 'on';
-    this.bloomTimer = setTimeout(() => {
-      bloom.hidden = true;
-      bloom.classList.remove('is-open');
-      delete frame.dataset.bloom;
-    }, BLOOM_MS);
+    this.bloomTimer = setTimeout(() => this.closeBloom(), BLOOM_MS);
   }
 }

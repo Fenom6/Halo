@@ -657,6 +657,47 @@ try {
     expect((await page.getAttribute('html', 'data-dim')) === null, '戻しても暗いまま');
   });
 
+  await check('見た目：描くもの「座標と光だけ」。カノンでも、追いかける3つの光・軌跡・蓮は出ず、目盛りと千本の光だけ。軌跡の長さは選べなくなる', async () => {
+    await page.click('#btn-look');
+    await page.waitForSelector('#dlg-look[open]');
+    expect((await page.locator('#dlg-look input[name="look-view"]').count()) === 2, '描くものが2つない');
+    await page.click('#dlg-look input[name="look-view"][value="pure"]', { force: true });
+    expect((await page.getAttribute('html', 'data-view')) === 'pure', 'ページに「座標と光だけ」の印がない');
+    expect(await page.$eval('#dlg-look .lk-trail', (f) => f.disabled), '座標と光だけなのに、軌跡の長さを選べる');
+    await page.keyboard.press('Escape');
+    await page.click('#btn-sample');
+    await page.waitForSelector('#dlg-canon[open]');
+    await page.click('#canon-play');
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent.includes('カノン'), null, { timeout: 8000 });
+    await page.waitForTimeout(13000); // 3つの声がそろう 16 拍目（約 11.5 秒）をこえる：ふだんなら蓮が開くところ
+    expect(await page.locator('#bloom').isHidden(), '座標と光だけなのに蓮が開いた');
+    const px = await page.evaluate(() => {
+      const c = document.querySelector('#cv-kouhai');
+      const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+      const css = getComputedStyle(document.documentElement);
+      const near = (k) => {
+        const n = parseInt(css.getPropertyValue(k).trim().slice(1), 16);
+        const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+        let m = 0;
+        for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - r) + Math.abs(d[i + 1] - g) + Math.abs(d[i + 2] - b) < 30) m++;
+        return m;
+      };
+      let lit = 0; // 地でも目盛りでもない、明るい画素（千本の光）
+      for (let i = 0; i < d.length; i += 16) if (Math.max(d[i], d[i + 1], d[i + 2]) > 120) lit++;
+      return { sky: near('--voice-2'), wisteria: near('--voice-3'), lit };
+    });
+    await shot('k08e-look-pure-canon');
+    expect(px.sky < 5 && px.wisteria < 5, `座標と光だけなのに、追いかける光が見える（空色 ${px.sky}・藤色 ${px.wisteria} 画素）`);
+    expect(px.lit > 50, `千本の光が描かれていない（${px.lit}）`);
+    await page.click('#btn-stop');
+    await page.click('#btn-look');
+    await page.waitForSelector('#dlg-look[open]');
+    await page.click('#dlg-look input[name="look-view"][value="full"]', { force: true });
+    expect(!(await page.$eval('#dlg-look .lk-trail', (f) => f.disabled)), 'すべてに戻しても、軌跡の長さを選べない');
+    await page.keyboard.press('Escape');
+    expect((await page.getAttribute('html', 'data-view')) === 'full', 'すべてに戻らない');
+  });
+
   await check('日本語版も、端末が明るい表示でも黒い地（光背の地も、ページの地も、まっ黒）。表示の切り替えはない', async () => {
     expect((await page.locator('input[name="kh-theme"]').count()) === 0, '表示の明るさの切り替えが残っている');
     const bg = await page.evaluate(() => {

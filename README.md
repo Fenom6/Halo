@@ -38,6 +38,7 @@
 - **録画**：光の動きを、最長 30 秒の動画（iPhone は MP4、Android・パソコンは WebM）にして保存・共有できます。カノン・指で鳴らす・ファイルの音は動画に入ります。マイクで聴いているときは、録画のたびに「マイクの音も入れる」か「光の動きだけ」かを選べます（歌や演奏の記録に）
 - **すばやい光**：高い音（約 400 Hz より上）の光は、短い時間だけを見るもう1つの観察窓で描くので、以前の4倍速く動きます。低い音は細かい観察窓のまま（和音の形がくっきり）
 - **見た目**：光背の下のパレットの印から選べます（端末に保存）
+  - 描くもの：すべて・**座標と光だけ**。座標と光だけは、目盛り（螺旋・12本の筋・音名）と千本の光だけを描き、追いかける光と軌跡・低音の金の輪・蓮は出しません（速い曲・和音の多い曲で、光の形だけを鑑賞したいときに。保存する絵と動画も同じ）
   - 光の色：金・朱・青・紫・虹。虹は音名ごとに色が決まり（12時の主音が赤）、和音が色の組み合わせとして見えます
   - 追いかける光の軌跡：短い（約 0.4 秒）・ふつう（約 1.2 秒）・長い（約 3 秒）
   - 画面の明るさ：そのまま・少し暗く・暗く（保存する絵と動画は暗くなりません）
@@ -162,7 +163,7 @@ tools/                開発用ツール（サーバー・点検・アイコン�
 - **Sample: Pachelbel's Canon in D**, synthesized from the score on the spot. Choose the bass and voices 1–3 to see three voices chase the same melody two bars apart
 - **Play by touch**: touch the spiral to play the nearest semitone (with harmonics); up to four fingers for chords. Optional 13-key keyboard under the halo, and a glide mode (portamento) that follows your finger without snapping
 - **Fast rays**: high notes (above about 400 Hz) are drawn from a second, short analyser, so they move four times faster; low notes keep the fine analyser for crisp chord shapes
-- **Look** (palette button under the halo): light color in gold, vermilion, blue, purple or rainbow (rainbow colors each note name, so chords show as color sets); trail length (0.4 / 1.2 / 3 s); screen brightness (normal / a little darker / darker)
+- **Look** (palette button under the halo): what to draw (everything, or **only the grid and the rays**: no moving lights, trails, bass ring or lotus, for busy music); light color in gold, vermilion, blue, purple or rainbow (rainbow colors each note name, so chords show as color sets); trail length (0.4 / 1.2 / 3 s); screen brightness (normal / a little darker / darker)
 - **3-second intro** on first visit: a light goes round from C clockwise, so “C at 12 o'clock, one octave per turn” is clear at a glance (replay it from “i”)
 - **Microphone blocked?** Step-by-step instructions for iPhone, Android, computers and Firefox
 - **Record**: save the moving halo as a video of up to 30 s (MP4 on iPhone, WebM elsewhere). Canon, touch and file sound go in; while listening with the microphone you choose each time whether to include it
