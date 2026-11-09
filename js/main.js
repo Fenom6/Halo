@@ -881,7 +881,10 @@ function hideProbeSoon() {
 }
 
 el.stage.addEventListener('pointerdown', (e) => {
-  probeAt(e);
+  if (isFull()) {
+    showFullUi(); // 全画面：触れると、少しのあいだ操作（まん中・✕）を出す。高さを調べる表示は出さない
+    if (engine.kind !== 'touch') return;
+  } else probeAt(e);
   if (engine.kind !== 'touch') return;
   e.preventDefault();
   try {
@@ -907,6 +910,56 @@ for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
 }
 el.stage.addEventListener('pointerleave', (e) => {
   if (!touches.has(e.pointerId)) hideProbeSoon();
+});
+
+// ---------- 光だけを全画面で観る ----------
+// 目盛り・音名・操作を隠し、地の色と千本の光だけを画面いっぱいに描く。
+// ブラウザの全画面（Fullscreen API）が使えればそれも使う。iPhone の Safari のように使えないときは、ページの中で画面いっぱいに広げる
+const isFull = () => document.documentElement.dataset.full === 'on';
+let fullUiTimer = 0;
+function showFullUi(ms = 2500) {
+  document.documentElement.dataset.fullUi = 'on';
+  clearTimeout(fullUiTimer);
+  fullUiTimer = setTimeout(() => delete document.documentElement.dataset.fullUi, ms);
+}
+function redrawAfterLayout() {
+  requestAnimationFrame(() => {
+    stage.resize();
+    if (engine.active) return;
+    if (showingExample) renderExample();
+    else redrawStill();
+  });
+}
+function enterFull() {
+  if (isFull()) return;
+  endIntro();
+  document.documentElement.dataset.full = 'on';
+  stage.setBare(true);
+  el.probe.hidden = true;
+  showFullUi(3500);
+  const root = document.documentElement;
+  if (root.requestFullscreen && !document.fullscreenElement) root.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+  redrawAfterLayout();
+}
+function exitFull() {
+  if (!isFull()) return;
+  delete document.documentElement.dataset.full;
+  delete document.documentElement.dataset.fullUi;
+  clearTimeout(fullUiTimer);
+  stage.setBare(false);
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  redrawAfterLayout();
+  $('#btn-full').focus({ preventScroll: true });
+}
+$('#btn-full').addEventListener('click', enterFull);
+$('#btn-full-exit').addEventListener('click', exitFull);
+$('#btn-full-exit').addEventListener('pointerdown', (e) => e.stopPropagation());
+// ブラウザの全画面を、戻るボタンや Esc でやめたとき
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && isFull()) exitFull();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && isFull()) exitFull();
 });
 
 // ---------- 残す（いまの光背を、1枚の絵に） ----------

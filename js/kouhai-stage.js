@@ -253,6 +253,13 @@ export class KouhaiStage {
     if (on) this.closeBloom();
   }
 
+  /** 光だけ（全画面）にする（true）か、戻す（false）か。光だけのあいだは蓮も開かない */
+  setBare(on) {
+    this.view.setBare(on);
+    this.bare = !!on;
+    if (on) this.closeBloom();
+  }
+
   /** 開いている蓮を、すぐ閉じる */
   closeBloom() {
     const { bloom, frame } = this.el;
@@ -264,7 +271,7 @@ export class KouhaiStage {
 
   /** 蓮の花を開く（光背の上に重ねて、しばらくして消える）。座標と光だけ のときは開かない */
   bloom() {
-    if (this.view.pure) return;
+    if (this.view.pure || this.view.bare) return;
     const { bloom, frame } = this.el;
     clearTimeout(this.bloomTimer);
     bloom.hidden = false;

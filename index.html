@@ -53,6 +53,7 @@
       <p class="bloom-text"><span class="bloom-title">カノン</span><span class="bloom-line">響きは、巡る。</span></p>
     </div>
     <div class="probe" id="probe" data-axis="none" hidden><span class="probe-line"></span><span class="probe-label" id="probe-label"></span></div>
+    <button type="button" class="kh-full-exit" id="btn-full-exit" aria-label="全画面をやめる"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-close"></use></svg></button>
     <button type="button" class="kh-badge" id="kh-badge"><span class="kh-badge-ex">例</span><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-play"></use></svg>カノンを聴いてみる</button>
   </div>
 
@@ -76,7 +77,7 @@
       <div class="cents" id="kh-cents" data-off="true" aria-hidden="true"><i class="cents-zero"></i><i class="cents-needle" id="kh-needle"></i></div>
       <p class="readout-sub" id="kh-sub">　</p>
     </div>
-    <div class="kh-settings-row"><button type="button" class="btn btn-quiet kh-tuning" id="btn-tuning" aria-haspopup="dialog"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-world"></use></svg><span class="kh-tuning-text">A4 = 440 Hz・ドレミ・12時：ド</span><span class="visually-hidden">（世界の音楽に合わせる設定を開く）</span></button><button type="button" class="btn btn-quiet kh-look" id="btn-look" aria-haspopup="dialog" aria-label="見た目（光の色・軌跡・明るさ）"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-look"></use></svg></button></div>
+    <div class="kh-settings-row"><button type="button" class="btn btn-quiet kh-tuning" id="btn-tuning" aria-haspopup="dialog"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-world"></use></svg><span class="kh-tuning-text">A4 = 440 Hz・ドレミ・12時：ド</span><span class="visually-hidden">（世界の音楽に合わせる設定を開く）</span></button><button type="button" class="btn btn-quiet kh-look" id="btn-look" aria-haspopup="dialog" aria-label="見た目（光の色・軌跡・明るさ）"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-look"></use></svg></button><button type="button" class="btn btn-quiet kh-full" id="btn-full" aria-label="光だけを全画面で観る"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-full"></use></svg></button></div>
 
     <div class="kh-go">
       <button type="button" class="btn btn-primary btn-big" id="btn-mic"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-mic"></use></svg><span id="btn-mic-text">マイクで観る</span></button>
@@ -174,6 +175,7 @@
         <dt>中心からの距離</dt><dd>オクターブ。内側ほど低く、外側ほど高い。螺旋を<strong>1周すると1オクターブ</strong>上がります（いちばん内側がド C2 の約 65 Hz、7周して いちばん外側がド C9 の約 8,400 Hz）。</dd>
         <dt>光の長さと色</dt><dd>その高さの音の強さ。千本の光が、螺旋から外へ伸びます。光の色は、光背の下のパレットの印（見た目）で、金・朱・青・紫・虹から選べます。<strong>虹</strong>では色が強さではなく<strong>音名</strong>で決まり（12時の主音が赤、時計回りに色相環を1周）、同じ音名は何周目でも同じ色、和音は色の組み合わせになります。</dd>
         <dt>朱色の光</dt><dd>いまの高さ。淡い2つの光が、0.8 秒ずつ遅れて同じ道すじを追いかけます。はじめの見た目は<strong>座標と光だけ</strong>（目盛りと千本の光だけ）なので、この光は出ません。見た目の「描くもの」で<strong>すべて</strong>を選ぶと、この光と軌跡・カノンの低音の金の輪・蓮が出ます。</dd>
+        <dt>全画面</dt><dd>パレットの印の右の「全画面」の印を押すと、目盛りも音名も消え、<strong>千本の光だけ</strong>が画面いっぱいに映ります。画面に触れると、少しのあいだ まん中（聴く・止める）と ✕（やめる）が出ます。</dd>
         <dt>まん中</dt><dd>操作と状態の場所です。止まっているときは「タップで聴く」（押すとマイクで聴き始める）。聴いているあいだは、高さがわかれば音名を、わからなければ「静か」「高さ不明」などの状態と、音の大きさの輪を出します（輪が回るほど大きな音。マイクが音を拾っているかが、ひと目でわかります）。聴いているときに押すと止まります。絵のほかの所に触れると、その場所の高さが出ます。</dd>
       </dl>
     </section>
@@ -272,6 +274,7 @@
     <symbol id="ic-keep" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.8v.6M16.2 12h-.6M12 16.2v-.6M7.8 12h.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
     <symbol id="ic-world" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.6 12h16.8M12 3.4c2.4 2.4 3.6 5.3 3.6 8.6s-1.2 6.2-3.6 8.6c-2.4-2.4-3.6-5.3-3.6-8.6s1.2-6.2 3.6-8.6Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
     <symbol id="ic-rec" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 10.5l5-3v9l-5-3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="9.5" cy="12" r="2.2" fill="currentColor"/></symbol>
+    <symbol id="ic-full" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="ic-look" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.3 0 1.9-.8 1.9-1.7 0-1.2-1-1.5-1-2.6 0-1 .8-1.7 1.9-1.7h2.1a3.6 3.6 0 0 0 3.6-3.6C20.5 6.8 16.7 3.5 12 3.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="7.6" cy="11.4" r="1.3" fill="currentColor"/><circle cx="10.4" cy="7.4" r="1.3" fill="currentColor"/><circle cx="15.2" cy="7.8" r="1.3" fill="currentColor"/></symbol>
     <symbol id="ic-share" viewBox="0 0 24 24"><path d="M12 14.5V4M8 7.5l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.5 10.5H6a1.5 1.5 0 0 0-1.5 1.5v7A1.5 1.5 0 0 0 6 20.5h12a1.5 1.5 0 0 0 1.5-1.5v-7a1.5 1.5 0 0 0-1.5-1.5h-1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
     <symbol id="ic-download" viewBox="0 0 24 24"><path d="M12 4v10.5M8 10.5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 16.5v2A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
