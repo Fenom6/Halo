@@ -1385,10 +1385,15 @@ dialog::backdrop {
 /* ---------- 見た目の窓と、開くボタン ---------- */
 .kh-settings-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: var(--sp-2);
 }
 .kh-look {
+  width: 48px;
+  min-height: 40px;
+  padding: 0;
+}
+.kh-full {
   width: 48px;
   min-height: 40px;
   padding: 0;
@@ -1532,4 +1537,74 @@ dialog.kh-look-sheet::backdrop {
   .kouhai-pc {
     transition: none;
   }
+}
+
+/* ---------- 光だけを全画面で観る（html[data-full="on"]）。目盛り・音名・操作を隠し、光背だけを画面いっぱいに ---------- */
+.kh-full-exit {
+  display: none;
+}
+:root[data-full="on"],
+:root[data-full="on"] body {
+  overflow: hidden;
+  background: #000;
+}
+:root[data-full="on"] .kh-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  aspect-ratio: auto;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: #000;
+  touch-action: none; /* 全画面のあいだは、ページを動かさない */
+}
+:root[data-full="on"] .kouhai-pc,
+:root[data-full="on"] .kh-badge,
+:root[data-full="on"] .probe,
+:root[data-full="on"] .bloom {
+  display: none !important;
+}
+/* まん中の操作（聴く・止める）は、画面に触れたときだけ少しのあいだ出す */
+:root[data-full="on"] .kouhai-center {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+:root[data-full="on"][data-full-ui="on"] .kouhai-center {
+  opacity: 1;
+  pointer-events: auto;
+}
+:root[data-full="on"] .kh-full-exit {
+  display: grid;
+  place-items: center;
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  right: max(12px, env(safe-area-inset-right, 0px));
+  z-index: 2;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  opacity: 0.35;
+  transition: opacity 0.3s ease;
+}
+:root[data-full="on"][data-full-ui="on"] .kh-full-exit,
+:root[data-full="on"] .kh-full-exit:focus-visible {
+  opacity: 1;
+}
+.kh-full-exit svg {
+  width: 22px;
+  height: 22px;
+}
+/* 全画面では、明るさの幕も光背の上にかける（暗い部屋で観るとき） */
+:root[data-full="on"][data-dim] body::after {
+  z-index: 70;
 }

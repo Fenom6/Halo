@@ -221,6 +221,7 @@ export class KouhaiView {
     this.orbs = [0, 1, 2].map(() => ({ turn: null, alpha: 0, trail: [] }));
     this.voiceColors = null; // カノンのときだけ、3つの声を色分けする（[第1声, 第2声, 第3声] の色）
     this.trailLen = TRAIL;
+    this.bare = false; // 光だけ（全画面）：目盛りも描かず、地の色と千本の光だけ
     this.pure = false; // 座標と光だけ：目盛りと千本の光だけを描き、追いかける3つの光・軌跡・低音の輪は描かない
     this.rainbow = null; // 虹のとき：[12の向き][3段の明るさ] の色。null なら、強さで色を変える（金・朱・青・紫）
   }
@@ -238,6 +239,14 @@ export class KouhaiView {
       o.alpha = 0;
       o.trail.length = 0;
     }
+  }
+
+  /** 光だけにする（true）か、目盛りを描く（false）か。全画面で観るときに使う。追いかける光・軌跡・低音の輪も描かない */
+  setBare(on) {
+    this.bare = !!on;
+    this.setPure(this.pure); // 残っている軌跡を消す（pure の値は変えない）
+    this.paintBase();
+    this.clear();
   }
 
   /** 虹（音名ごとの色）にする。table は look.js の rainbowTable()。null で、強さで色を変える描き方に戻す */
@@ -309,6 +318,7 @@ export class KouhaiView {
     const g = this.base.getContext('2d');
     g.fillStyle = rgbStr(colors.bg);
     g.fillRect(0, 0, w, h);
+    if (this.bare) return; // 光だけ：目盛り（外の輪・12本の筋・螺旋・中心の輪）は描かない
     g.lineWidth = dpr;
     g.strokeStyle = rgbStr(colors.grid);
     g.beginPath();
@@ -383,7 +393,7 @@ export class KouhaiView {
     ctx.globalAlpha = 1;
     if (still) for (const o of this.orbs) o.trail.length = 0;
     this.drawArms(db, fast);
-    if (this.pure && !guide) return; // 座標と光だけ：ここまで（目盛りと千本の光）
+    if ((this.pure || this.bare) && !guide) return; // 座標と光だけ・光だけ：ここまで（千本の光）
     if (bass !== null && bass !== undefined) this.drawBass(bass);
     this.drawOrbs(voices, still ? 1e4 : dt);
   }

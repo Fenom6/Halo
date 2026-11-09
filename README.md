@@ -42,6 +42,7 @@
   - 光の色：金・朱・青・紫・虹。虹は音名ごとに色が決まり（12時の主音が赤）、和音が色の組み合わせとして見えます
   - 追いかける光の軌跡：短い（約 0.4 秒）・ふつう（約 1.2 秒）・長い（約 3 秒）
   - 画面の明るさ：そのまま・少し暗く・暗く（保存する絵と動画は暗くなりません）
+- **光だけを全画面で**：光背の下の「全画面」の印を押すと、目盛り・音名・操作をすべて隠し、千本の光だけを画面いっぱいに映します（鑑賞用）。画面に触れると、少しのあいだ「聴く・止める」と ✕（やめる）が出ます。iPhone の Safari のようにブラウザの全画面が使えないときは、ページの中で画面いっぱいに広げます
 - **黒い背景**：日本語版・英語版とも、端末の設定にかかわらず黒い背景で表示します（光が金色に輝きます）
 - **英語版**：`en.html` は英語表示の版です。画面右上で日本語版と切り替えられます
 - **オフライン対応**：ホーム画面に追加でき、一度開けば通信がない場所でも使えます
@@ -163,7 +164,7 @@ tools/                開発用ツール（サーバー・点検・アイコン�
 - **Sample: Pachelbel's Canon in D**, synthesized from the score on the spot. Choose the bass and voices 1–3 to see three voices chase the same melody two bars apart
 - **Play by touch**: touch the spiral to play the nearest semitone (with harmonics); up to four fingers for chords. Optional 13-key keyboard under the halo, and a glide mode (portamento) that follows your finger without snapping
 - **Fast rays**: high notes (above about 400 Hz) are drawn from a second, short analyser, so they move four times faster; low notes keep the fine analyser for crisp chord shapes
-- **Look** (palette button under the halo): what to draw (**only the grid and the rays** by default; choose everything to add the moving lights, trails, bass ring and lotus); light color in gold, vermilion, blue, purple or rainbow (rainbow colors each note name, so chords show as color sets); trail length (0.4 / 1.2 / 3 s); screen brightness (normal / a little darker / darker)
+- **Look** (palette button under the halo): **full screen, light only** (the corner-arrows button hides the grid, labels and controls; tap to show stop and ✕); what to draw (**only the grid and the rays** by default; choose everything to add the moving lights, trails, bass ring and lotus); light color in gold, vermilion, blue, purple or rainbow (rainbow colors each note name, so chords show as color sets); trail length (0.4 / 1.2 / 3 s); screen brightness (normal / a little darker / darker)
 - **3-second intro** on first visit: a light goes round from C clockwise, so “C at 12 o'clock, one octave per turn” is clear at a glance (replay it from “i”)
 - **Microphone blocked?** Step-by-step instructions for iPhone, Android, computers and Firefox
 - **Record**: save the moving halo as a video of up to 30 s (MP4 on iPhone, WebM elsewhere). Canon, touch and file sound go in; while listening with the microphone you choose each time whether to include it

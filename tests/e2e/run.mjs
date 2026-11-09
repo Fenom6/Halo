@@ -711,6 +711,55 @@ try {
     expect((await page.getAttribute('html', 'data-view')) === 'full', 'すべてに戻らない');
   });
 
+  await check('光だけを全画面で：目盛り・音名・操作が消えて光だけが画面いっぱいに。触れると操作と ✕ が出て、✕ で元に戻る', async () => {
+    // ブラウザの全画面はウィンドウごと切り替わるので、別の画面で確かめる（あとの「横に持つ」の確かめに残さない）
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: 'ja-JP' });
+    await ctx.addInitScript(() => localStorage.setItem('halo.prefs.v1', JSON.stringify({ introSeen: true })));
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`http://localhost:${PORT}/`);
+    await p.waitForFunction(() => document.querySelector('#kh-hz').textContent.includes('例'), null, { timeout: 10000 });
+    const pixels = () =>
+      p.evaluate(() => {
+        const c = document.querySelector('#cv-kouhai');
+        const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+        let gray = 0;
+        let lit = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          const [r, g, b] = [d[i], d[i + 1], d[i + 2]];
+          const mx = Math.max(r, g, b);
+          if (mx > 120) lit++;
+          else if (mx > 25 && mx - Math.min(r, g, b) < 12) gray++; // 灰色（目盛りの線）
+        }
+        return { gray, lit, corner: [...c.getContext('2d').getImageData(1, 1, 1, 1).data.slice(0, 3)] };
+      });
+    const before = await pixels();
+    await p.click('#btn-full');
+    expect((await p.getAttribute('html', 'data-full')) === 'on', '全画面の印がない');
+    await p.waitForTimeout(600);
+    const box = await p.locator('#kh-stage').boundingBox();
+    expect(Math.abs(box.width - 390) < 2 && Math.abs(box.height - 844) < 2, `光背が画面いっぱいでない（${box.width}×${box.height}）`);
+    expect(!(await p.locator('#kouhai-dial .kouhai-pc').first().isVisible()), '音名が出たまま');
+    const px = await pixels();
+    expect(px.lit > 500, `光が描かれていない（${px.lit}）`);
+    expect(px.gray * 5 < before.gray, `目盛りの線が残っている（灰色 前 ${before.gray}・後 ${px.gray} 画素）`);
+    expect(px.corner.every((v) => v < 8), `地が黒くない（${px.corner}）`);
+    await shot('k08f-full-light', p);
+    await p.waitForTimeout(3800);
+    expect((await p.getAttribute('html', 'data-full-ui')) === null, '操作が出たまま消えない');
+    await p.mouse.click(195, 170);
+    expect((await p.getAttribute('html', 'data-full-ui')) === 'on', '触れても操作が出ない');
+    expect(!(await p.locator('#probe').isVisible()), '全画面で、高さを調べる表示が出た');
+    await p.click('#btn-full-exit');
+    expect((await p.getAttribute('html', 'data-full')) === null, '✕ で元に戻らない');
+    await p.waitForTimeout(400);
+    expect(await p.locator('#kouhai-dial .kouhai-pc').first().isVisible(), '戻しても音名が出ない');
+    const back = await p.locator('#kh-stage').boundingBox();
+    expect(Math.abs(back.width - back.height) < 2, '戻しても正方形に戻らない');
+    expect((await pixels()).gray > before.gray / 2, '戻しても目盛りが描かれない');
+    await ctx.close();
+  });
+
   await check('日本語版も、端末が明るい表示でも黒い地（光背の地も、ページの地も、まっ黒）。表示の切り替えはない', async () => {
     expect((await page.locator('input[name="kh-theme"]').count()) === 0, '表示の明るさの切り替えが残っている');
     const bg = await page.evaluate(() => {
