@@ -405,9 +405,30 @@ try {
     await page.keyboard.press('Escape');
   });
 
-  await check('録画：押すと録り始め、もう一度押すと、光の動きの動画（WebM）ができる', async () => {
+  await check('録画：押すと長さと画質を選ぶ窓が出て（パソコン）、始めると録り始め、もう一度押すと、光の動きの動画（WebM）ができる', async () => {
     expect(await page.locator('#btn-record').isVisible(), '録画のボタンがない');
     await page.click('#btn-record');
+    await page.waitForSelector('#dlg-rec[open]');
+    expect((await text('#dlg-rec-h')) === '録画の設定', `窓の見出しが「${await text('#dlg-rec-h')}」`);
+    expect(await page.locator('#rec-opts').isVisible(), '長さと画質の選択が出ていない');
+    expect(await page.locator('#rec-with-mic').isHidden(), 'マイクで聴いていないのに、マイクの質問が出た');
+    // はじめは 30 分・標準（約 560 MB）
+    expect(await page.isChecked('#rec-opts input[name="rec-minutes"][value="30"]'), 'はじめの長さが 30 分でない');
+    expect(await page.isChecked('#rec-opts input[name="rec-quality"][value="standard"]'), 'はじめの画質が標準でない');
+    expect((await text('#rec-estimate')).includes('560 MB'), `見積もりが「${await text('#rec-estimate')}」`);
+    // 2 時間・最高画質にすると、大きさの上限に先に届くことを知らせる。選んだものは覚えている
+    await page.click('#rec-opts label:has(input[name="rec-minutes"][value="120"])');
+    await page.click('#rec-opts label:has(input[name="rec-quality"][value="best"])');
+    expect((await text('#rec-estimate')).includes('2.0 GB'), `上限の知らせが「${await text('#rec-estimate')}」`);
+    await shot('k07b-record-options');
+    await page.click('#dlg-rec .sheet-head button');
+    await page.waitForTimeout(300);
+    expect((await page.getAttribute('#btn-record', 'aria-pressed')) === 'false', 'やめたのに録画が始まった');
+    await page.click('#btn-record');
+    await page.waitForSelector('#dlg-rec[open]');
+    expect(await page.isChecked('#rec-opts input[name="rec-minutes"][value="120"]'), '選んだ長さを覚えていない');
+    await page.click('#rec-opts label:has(input[name="rec-quality"][value="high"])');
+    await page.click('#rec-start');
     await page.waitForFunction(() => document.querySelector('#btn-record').getAttribute('aria-pressed') === 'true', null, { timeout: 5000 });
     await page.waitForTimeout(1600);
     expect((await text('#btn-record-text')).startsWith('止める 0:0'), `録画中の表示が「${await text('#btn-record-text')}」`);
@@ -420,6 +441,40 @@ try {
     expect(hasAudioTrack(buf), '動画に音の筋（トラック）がない');
     await page.waitForFunction(() => document.querySelector('#btn-record').getAttribute('aria-pressed') === 'false', null, { timeout: 5000 });
     expect((await text('#btn-record-text')) === '録画', '録画のボタンが元に戻らない');
+  });
+
+  await check('録音：押すとすぐ録り始め、もう一度押すと、音だけのファイルができる。録音中は録画を始められない', async () => {
+    expect(await page.locator('#btn-audio').isVisible(), '録音のボタンがない');
+    await page.click('#btn-audio');
+    await page.waitForFunction(() => document.querySelector('#btn-audio').getAttribute('aria-pressed') === 'true', null, { timeout: 5000 });
+    expect(!(await page.locator('#dlg-rec[open]').count()), '録音なのに、録画の窓が開いた');
+    await page.click('#btn-record'); // 録音中は、録画は始まらない
+    await page.waitForTimeout(300);
+    expect(!(await page.locator('#dlg-rec[open]').count()), '録音中に、録画の窓が開いた');
+    await page.waitForTimeout(1400);
+    expect((await text('#btn-audio-text')).startsWith('止める 0:0'), `録音中の表示が「${await text('#btn-audio-text')}」`);
+    const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 10000 }), page.click('#btn-audio')]);
+    expect(/^kouhai-\d{8}-\d{6}\.(webm|m4a|ogg)$/.test(dl.suggestedFilename()), dl.suggestedFilename());
+    const buf = await readFile(await dl.path());
+    expect(buf.length > 500, `録音が小さすぎる（${buf.length} バイト）`);
+    expect(hasAudioTrack(buf), '録音に音の筋（トラック）がない');
+    expect(!/V_(VP8|VP9|AV1|MPEG4)/.test(buf.toString('latin1')), '録音に映像が入っている');
+    await page.waitForFunction(() => document.querySelector('#btn-audio-text').textContent === '録音', null, { timeout: 5000 });
+  });
+
+  await check('録音（マイク）：マイクで聴いているときは、たずねずにマイクの音を入れる', async () => {
+    await page.click('#btn-mic');
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'ラ', null, { timeout: 10000 });
+    await page.click('#btn-audio');
+    await page.waitForFunction(() => document.querySelector('#btn-audio').getAttribute('aria-pressed') === 'true', null, { timeout: 5000 });
+    expect(!(await page.locator('#dlg-rec[open]').count()), '録音なのに、質問の窓が開いた');
+    await page.waitForTimeout(2500);
+    const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 10000 }), page.click('#btn-audio')]);
+    const buf = await readFile(await dl.path());
+    // 440 Hz のマイクの音が入っているので、無音の録音（1 秒あたり数百バイト）よりずっと大きい
+    expect(buf.length > 8000, `マイクの音が入っていないようだ（${buf.length} バイト）`);
+    await page.click('#btn-mic');
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
   });
 
   await check('録画（マイク）：マイクで聴いているときは、マイクの音も入れるかをたずねる。やめる・入れるを選べる', async () => {
