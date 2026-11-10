@@ -35,7 +35,7 @@
   - **なめらか**：半音にそろえず、指の位置そのままの高さで鳴らします（ポルタメント）。倍音の光も一緒に滑ります
 - **ファイル**：MP3・M4A（AAC）・WAV・OGG・FLAC などの音のファイルを読めます。パソコンでは、ファイルを画面へドラッグしても読めます
 - **画像として保存**：表示中の光の輪を、音名と日時と URL 入りの PNG 画像として保存・共有できます。パソコンでは「共有する」か「ダウンロード」かを選べます（Windows の共有の画面には Google ドライブなどが出ないため）。スマホ・タブレットは、すぐ共有の画面を開きます（「写真に保存」「ファイルに保存」もそこから）
-- **録画**：光の動きを、最長 30 秒の動画（iPhone は MP4、Android・パソコンは WebM）にして保存・共有できます。カノン・指で鳴らす・ファイルの音は動画に入ります。マイクで聴いているときは、録画のたびに「マイクの音も入れる」か「光の動きだけ」かを選べます（歌や演奏の記録に）
+- **録画**：光の動きを、最長 30 分の動画（iPhone は MP4、Android・パソコンは WebM）にして保存・共有できます。カノン・指で鳴らす・ファイルの音は動画に入ります。マイクで聴いているときは、録画のたびに「マイクの音も入れる」か「光の動きだけ」かを選べます（歌や演奏の記録に）。録画中は画面が消えないようにします。動画が約 600 MB に届いたときも自動で止めます
 - **すばやい光**：高い音（約 400 Hz より上）の光は、短い時間だけを見るもう1つの観察窓で描くので、以前の4倍速く動きます。低い音は細かい観察窓のまま（和音の形がくっきり）
 - **見た目**：光背の下のパレットの印から選べます（端末に保存）
   - 描くもの：**座標と光だけ**（はじめ）・すべて。座標と光だけは、目盛り（螺旋・12本の筋・音名）と千本の光だけを描き、追いかける光と軌跡・低音の金の輪・蓮は出しません（光の形だけを鑑賞できる。保存する絵と動画も同じ）。すべて にすると、これらも出ます
@@ -167,7 +167,7 @@ tools/                開発用ツール（サーバー・点検・アイコン�
 - **Look** (palette button under the halo): **full screen, light only** (the corner-arrows button hides the grid, labels and controls; tap to show stop and ✕); what to draw (**only the grid and the rays** by default; choose everything to add the moving lights, trails, bass ring and lotus); light color in gold, vermilion, blue, purple or rainbow (rainbow colors each note name, so chords show as color sets); trail length (0.4 / 1.2 / 3 s); screen brightness (normal / a little darker / darker)
 - **3-second intro** on first visit: a light goes round from C clockwise, so “C at 12 o'clock, one octave per turn” is clear at a glance (replay it from “i”)
 - **Microphone blocked?** Step-by-step instructions for iPhone, Android, computers and Firefox
-- **Record**: save the moving halo as a video of up to 30 s (MP4 on iPhone, WebM elsewhere). Canon, touch and file sound go in; while listening with the microphone you choose each time whether to include it
+- **Record**: save the moving halo as a video of up to 30 min (MP4 on iPhone, WebM elsewhere). Canon, touch and file sound go in; while listening with the microphone you choose each time whether to include it
 - **Save as image** (on computers, choose Share or Download; phones go straight to the share sheet), **works offline**, **add to home screen**, and built-in explanations (reading the ring, physics, math, music, code)
 
 The microphone needs the page to be served over **https**. Sound is processed on the device only; nothing is recorded or sent.

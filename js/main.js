@@ -1073,7 +1073,7 @@ el.btnSave.addEventListener('click', async () => {
   }
 });
 
-// ---------- 録画（光の動きを、短い動画に） ----------
+// ---------- 録画（光の動きを、動画に。最長 30 分） ----------
 let clip = null;
 const RECORD_LABEL = L('録画', 'Record');
 if (!videoType()) el.btnRecord.hidden = true; // 動画を作れないブラウザでは出さない
@@ -1086,6 +1086,29 @@ function askRecordMic() {
     openDialog(dlg);
   });
 }
+
+// 録画中は、画面が消えないようにする（画面が消えると、絵を描く係が止まって、動画も止まった絵になるため）。
+// 「観ているあいだは画面を消さない」の設定とは別に、録画のあいだだけ必ず頼む。使えない端末では何もしない
+let recWake = null;
+async function holdRecWake() {
+  if (recWake || !('wakeLock' in navigator)) return;
+  try {
+    recWake = await navigator.wakeLock.request('screen');
+    recWake.addEventListener('release', () => {
+      recWake = null;
+    });
+  } catch {
+    recWake = null;
+  }
+}
+function dropRecWake() {
+  if (recWake) recWake.release().catch(() => {});
+  recWake = null;
+}
+// 別のアプリから戻ってきたら、頼み直す（画面を離れると、この頼みは自動で取り消されるため）
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && clip && clip.recording) holdRecWake();
+});
 
 // 録画の始まりから、保存が終わるまで true。そのあいだは、次の録画を始めさせない
 // （保存を待っている間に次の録画を始めると、前のマイクの接続が残ったり、画面の表示が前の録画に書きかえられたりするため）
@@ -1146,14 +1169,15 @@ async function recordOnce() {
     toast(L('このブラウザでは録画できません', 'This browser cannot record video'));
     return;
   }
+  holdRecWake();
   el.btnRecord.setAttribute('aria-pressed', 'true');
   el.btnRecordText.textContent = L('止める 0:00', 'Stop 0:00');
   toast(
     engine.kind !== 'mic'
-      ? L('録画中', 'Recording')
+      ? L('録画中（最長 30 分）', 'Recording (up to 30 min)')
       : micOn
-        ? L('録画中（マイクの音も入れています）', 'Recording (with the microphone)')
-        : L('録画中（光の動きだけ。マイクの音は入れません）', 'Recording (picture only; the microphone is not recorded)'),
+        ? L('録画中（最長 30 分。マイクの音も入れています）', 'Recording (up to 30 min, with the microphone)')
+        : L('録画中（最長 30 分。光の動きだけ。マイクの音は入れません）', 'Recording (up to 30 min, picture only; the microphone is not recorded)'),
   );
   try {
     let blob;
@@ -1162,9 +1186,13 @@ async function recordOnce() {
     } finally {
       // 録り終えたら、すぐマイクの接続を切る（保存や共有の窓を開いている間も、マイクを録画の流れにつなげたままにしない）
       if (micOn) engine.recordMic(false);
+      dropRecWake();
     }
     el.btnRecord.setAttribute('aria-pressed', 'false');
     el.btnRecordText.textContent = L('保存中…', 'Saving…');
+    // 上限で自動で止まったときは、そのことを知らせる（ここまでの分は、そのまま保存する）
+    if (clip.stoppedBy === 'time') toast(L('30 分になったので、録画を止めました', 'Recording stopped at 30 minutes'));
+    else if (clip.stoppedBy === 'size') toast(L('動画が大きくなったので、録画を止めました', 'Recording stopped: the video reached the size limit'));
     const ext = videoExt(clip.type);
     const r = await shareOrSave(blob, `kouhai-${when.file}.${ext}`, blob.type || `video/${ext}`);
     if (r !== 'shared' && r !== 'cancelled') {

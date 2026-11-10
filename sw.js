@@ -5,7 +5,7 @@
  * ネットにつながらないときは、しまっておいたものを使う。
  * 部品を変えたら VERSION の数字を上げること（古いしまい物を入れかえるため）。
  */
-const VERSION = 'halo-1.11.0';
+const VERSION = 'halo-1.12.0';
 
 const SHELL = [
   './',
