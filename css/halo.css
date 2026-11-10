@@ -984,7 +984,9 @@ dialog::backdrop {
 }
 .kh-tools {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  /* ボタンの数だけ、同じ幅で横に並べる（録画・録音ができないブラウザでは、そのボタンが消えて残りが広がる） */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: var(--sp-2);
 }
 .kh-tools .btn {
@@ -1245,10 +1247,12 @@ dialog::backdrop {
 .kh-dot.v3 { background: var(--voice-3); }
 
 /* ---------- 録画中 ---------- */
+.kh-tools .btn#btn-audio[aria-pressed="true"],
 .kh-tools .btn#btn-record[aria-pressed="true"] {
   background: color-mix(in srgb, var(--danger, #e05a4f) 18%, transparent);
   border-color: var(--danger, #e05a4f);
 }
+.kh-tools .btn#btn-audio[aria-pressed="true"] svg,
 .kh-tools .btn#btn-record[aria-pressed="true"] svg {
   color: var(--danger, #e05a4f);
 }

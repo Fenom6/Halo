@@ -36,6 +36,8 @@
 - **ファイル**：MP3・M4A（AAC）・WAV・OGG・FLAC などの音のファイルを読めます。パソコンでは、ファイルを画面へドラッグしても読めます
 - **画像として保存**：表示中の光の輪を、音名と日時と URL 入りの PNG 画像として保存・共有できます。パソコンでは「共有する」か「ダウンロード」かを選べます（Windows の共有の画面には Google ドライブなどが出ないため）。スマホ・タブレットは、すぐ共有の画面を開きます（「写真に保存」「ファイルに保存」もそこから）
 - **録画**：光の動きを、最長 30 分の動画（iPhone は MP4、Android・パソコンは WebM）にして保存・共有できます。カノン・指で鳴らす・ファイルの音は動画に入ります。マイクで聴いているときは、録画のたびに「マイクの音も入れる」か「光の動きだけ」かを選べます（歌や演奏の記録に）。録画中は画面が消えないようにします。動画が約 600 MB に届いたときも自動で止めます
+- **録画の長さと画質（パソコンなど）**：マウスで操作する端末では、録画の前に長さ（30 分・1 時間・2 時間）と画質（標準 2.5 Mbps・高画質 5 Mbps・最高画質 10 Mbps）を選べます。最後まで録ったときの大きさの見積もりも出ます。大きさの上限は 2 GB で、先に届くとそこで止まります。スマホ・タブレットは、いつも 30 分・標準です
+- **録音**：音だけを、最長 2 時間のファイル（iPhone は M4A、Android・パソコンは WebM）にして保存・共有できます。カノン・指で鳴らす・ファイルの音が入り、マイクで聴いているときはマイクの音も入ります
 - **すばやい光**：高い音（約 400 Hz より上）の光は、短い時間だけを見るもう1つの観察窓で描くので、以前の4倍速く動きます。低い音は細かい観察窓のまま（和音の形がくっきり）
 - **見た目**：光背の下のパレットの印から選べます（端末に保存）
   - 描くもの：**座標と光だけ**（はじめ）・すべて。座標と光だけは、目盛り（螺旋・12本の筋・音名）と千本の光だけを描き、追いかける光と軌跡・低音の金の輪・蓮は出しません（光の形だけを鑑賞できる。保存する絵と動画も同じ）。すべて にすると、これらも出ます
@@ -74,7 +76,7 @@
 
 - マイクの音は端末内でのみ処理され、送信は行いません
 - 画像の保存は、利用者が「残す」を押したときだけ端末内で行います
-- 動画は「録画」を押したときだけ端末内で作ります。マイクの音は、録画のときに「マイクの音も入れる」を選んだときだけ動画に入ります
+- 動画は「録画」、音声は「録音」を押したときだけ端末内で作ります。マイクの音が残るのは、録画で「マイクの音も入れる」を選んだときと、マイクで聴きながら「録音」を押したときだけです
 - マイクの自動音量調整・雑音除去は、測定を正確にするためオフにしています
 - 外部への通信は、文字（Google Fonts）の読み込みのみです
 
@@ -132,7 +134,7 @@ js/synth.js           カノンの音の合成
 js/pitch.js           音の高さの決定
 js/features.js, classify.js, dsp.js   信号処理（FFT・YIN 法・倍音・音の分類）
 js/audio.js           音の入出力（Web Audio API・AudioWorklet・細かい観察窓と速い観察窓）
-js/recorder.js        録画（canvas の映像と、スピーカーの音を動画に）
+js/recorder.js        録画（canvas の映像と、スピーカーの音を動画に）・録音（音だけ）
 js/i18n.js            日本語・英語の切り替え
 js/look.js, look-ui.js  見た目（光の色・軌跡の長さ・明るさ）の決まりと設定の画面
 js/tuning.js          世界の音楽に合わせる決まり（基準の高さ・音名の表し方・主音・四分音）
@@ -167,10 +169,11 @@ tools/                開発用ツール（サーバー・点検・アイコン�
 - **Look** (palette button under the halo): **full screen, light only** (the corner-arrows button hides the grid, labels and controls; tap to show stop and ✕); what to draw (**only the grid and the rays** by default; choose everything to add the moving lights, trails, bass ring and lotus); light color in gold, vermilion, blue, purple or rainbow (rainbow colors each note name, so chords show as color sets); trail length (0.4 / 1.2 / 3 s); screen brightness (normal / a little darker / darker)
 - **3-second intro** on first visit: a light goes round from C clockwise, so “C at 12 o'clock, one octave per turn” is clear at a glance (replay it from “i”)
 - **Microphone blocked?** Step-by-step instructions for iPhone, Android, computers and Firefox
-- **Record**: save the moving halo as a video of up to 30 min (MP4 on iPhone, WebM elsewhere). Canon, touch and file sound go in; while listening with the microphone you choose each time whether to include it
+- **Record**: save the moving halo as a video of up to 30 min (MP4 on iPhone, WebM elsewhere). Canon, touch and file sound go in; while listening with the microphone you choose each time whether to include it. On a computer you can pick the length (30 min, 1 h, 2 h) and quality (2.5, 5 or 10 Mbps) before recording
+- **Audio**: save the sound alone as a file of up to 2 hours (M4A on iPhone, WebM elsewhere). The microphone is included when you are listening with it
 - **Save as image** (on computers, choose Share or Download; phones go straight to the share sheet), **works offline**, **add to home screen**, and built-in explanations (reading the ring, physics, math, music, code)
 
-The microphone needs the page to be served over **https**. Sound is processed on the device only; nothing is recorded or sent.
+The microphone needs the page to be served over **https**. Sound is processed on the device only; nothing is sent, and nothing is recorded unless you press Record or Audio.
 
 Development: Node.js 20+, no dependencies. `npm test` runs the unit tests, `npm run serve` starts a local server (loopback only; hidden files such as `.git` are never served), `npm run e2e` runs browser tests (needs Playwright).
 

@@ -14,7 +14,10 @@ import {
   KOUHAI_OCTAVES,
 } from '../js/kouhai.js';
 import { analyserLikeDb } from '../js/dsp.js';
-import { videoType, videoExt, clock, limitReached, VIDEO_TYPES, MAX_SECONDS, MAX_BYTES, VIDEO_BPS } from '../js/recorder.js';
+import {
+  videoType, videoExt, clock, limitReached, VIDEO_TYPES, MAX_SECONDS, MAX_BYTES, VIDEO_BPS,
+  recordPlan, estimate, sizeText, audioType, audioExt, LENGTHS, QUALITIES, MAX_BYTES_DESKTOP, AUDIO_BPS, AUDIO_MAX_SECONDS, AUDIO_TYPES,
+} from '../js/recorder.js';
 
 const SR = 48000;
 
@@ -94,4 +97,54 @@ test('録画：30 分まで録れる。時間か大きさの上限で自動で�
   assert.equal(limitReached(60, MAX_BYTES), 'size');
   // 映像（VIDEO_BPS）と音（多めに見て 192 kbps）を 30 分録っても、大きさの上限におさまる
   assert.ok(((VIDEO_BPS + 192_000) * MAX_SECONDS) / 8 < MAX_BYTES, '30 分の前に、大きさの上限で止まってしまう');
+});
+
+test('録画（パソコンなど）：長さと画質を選べる。スマホでは、いつも 30 分・標準', () => {
+  assert.deepEqual(LENGTHS, [30, 60, 120]);
+  assert.deepEqual(Object.keys(QUALITIES), ['standard', 'high', 'best']);
+  // スマホ：何を覚えていても、30 分・標準・600 MB
+  const phone = recordPlan({ desktop: false, minutes: 120, quality: 'best' });
+  assert.deepEqual([phone.maxSeconds, phone.maxBytes, phone.videoBps], [MAX_SECONDS, MAX_BYTES, VIDEO_BPS]);
+  // パソコン：選んだとおり。大きさの上限は 2 GB
+  const pc = recordPlan({ desktop: true, minutes: 60, quality: 'high' });
+  assert.deepEqual([pc.maxSeconds, pc.maxBytes, pc.videoBps], [3600, MAX_BYTES_DESKTOP, QUALITIES.high.bps]);
+  // 知らない値は、はじめの値に戻す
+  const odd = recordPlan({ desktop: true, minutes: 7, quality: 'ultra' });
+  assert.deepEqual([odd.minutes, odd.quality], [30, 'standard']);
+  // 上限は、決まりの値で判定する
+  assert.equal(limitReached(1800, 0, pc.maxSeconds, pc.maxBytes), '');
+  assert.equal(limitReached(3600, 0, pc.maxSeconds, pc.maxBytes), 'time');
+  assert.equal(limitReached(10, MAX_BYTES_DESKTOP, pc.maxSeconds, pc.maxBytes), 'size');
+});
+
+test('録画（パソコンなど）：大きさの見積もり。上限に先に届くときは、その時間を答える', () => {
+  // 1 時間・高画質：（5,000,000 + 128,000）× 3600 ÷ 8 ≒ 2.3 GB → 2 GB の上限に先に届く
+  const big = estimate(recordPlan({ desktop: true, minutes: 60, quality: 'high' }));
+  assert.equal(big.capped, true);
+  assert.equal(big.bytes, MAX_BYTES_DESKTOP);
+  assert.equal(big.seconds, Math.floor(MAX_BYTES_DESKTOP / ((5_000_000 + AUDIO_BPS) / 8)));
+  // 30 分・標準：上限におさまる
+  const small = estimate(recordPlan({ desktop: true }));
+  assert.equal(small.capped, false);
+  assert.equal(small.seconds, 1800);
+  assert.equal(small.bytes, ((VIDEO_BPS + AUDIO_BPS) / 8) * 1800);
+  assert.equal(sizeText(small.bytes), '560 MB');
+  assert.equal(sizeText(MAX_BYTES_DESKTOP), '2.0 GB');
+});
+
+test('録音：作れる形式を選ぶ（iPhone の M4A を先に）。2 時間録っても、スマホの大きさの上限におさまる', () => {
+  const env = (supported) => ({
+    MediaRecorder: Object.assign(function MediaRecorder() {}, { isTypeSupported: (t) => supported.includes(t) }),
+    MediaStream: function MediaStream() {},
+  });
+  assert.equal(audioType(env(['audio/mp4', 'audio/webm'])), 'audio/mp4');
+  assert.equal(audioType(env(['audio/webm;codecs=opus', 'audio/webm'])), 'audio/webm;codecs=opus');
+  assert.equal(audioType(env([])), '');
+  assert.equal(audioType({}), '', 'MediaRecorder がない');
+  assert.ok(AUDIO_TYPES[0].startsWith('audio/mp4'));
+  assert.equal(audioExt('audio/mp4;codecs=mp4a.40.2'), 'm4a');
+  assert.equal(audioExt('audio/webm;codecs=opus'), 'webm');
+  assert.equal(audioExt('audio/ogg;codecs=opus'), 'ogg');
+  assert.equal(AUDIO_MAX_SECONDS, 2 * 60 * 60);
+  assert.ok((AUDIO_BPS * AUDIO_MAX_SECONDS) / 8 < MAX_BYTES);
 });

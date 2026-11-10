@@ -12,6 +12,8 @@ export const DEFAULT_PREFS = {
   touchKeys: false, // 指で鳴らすとき、鍵盤も出す
   touchGlide: false, // 指で鳴らすとき、半音にそろえず、指の位置そのままの高さで鳴らす（ポルタメント）
   look: null, // 見た目（光の色・軌跡の長さ・明るさ）。null ならはじめの見た目（look.js の DEFAULT_LOOK）
+  recMinutes: 30, // 録画の長さ（分）。パソコンなどで選べる（recorder.js の LENGTHS）
+  recQuality: 'standard', // 録画の画質。パソコンなどで選べる（recorder.js の QUALITIES）
   introSeen: false, // 最初の案内（3秒）を見たか
 };
 

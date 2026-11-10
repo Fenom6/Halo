@@ -25,9 +25,9 @@ import { formatHz, formatCents } from './format.js';
 import { $, $$, h, toast, openDialog, onResize, saveFile } from './ui.js';
 import { prefs } from './prefs.js';
 import { isEmbedded } from './claude.js';
-import { L, clockText } from './i18n.js';
+import { L, LANG, clockText } from './i18n.js';
 import { tuning, onTuning, describe, pcName, isAccidental, hourOf, midiHz } from './tuning.js';
-import { ClipRecorder, videoType, videoExt, clock as recClock } from './recorder.js';
+import { ClipRecorder, videoType, videoExt, audioType, audioExt, recordPlan, estimate, sizeText, clock as recClock, LENGTHS, QUALITIES, AUDIO_MAX_SECONDS } from './recorder.js';
 import { initTuningSheet, loadTuning } from './tuning-ui.js';
 import { TRAILS, rainbowTable, isPure } from './look.js';
 import { initLookSheet, currentLook, applyLookToPage } from './look-ui.js';
@@ -110,6 +110,8 @@ const el = {
   btnSave: $('#btn-save'),
   btnRecord: $('#btn-record'),
   btnRecordText: $('#btn-record-text'),
+  btnAudio: $('#btn-audio'),
+  btnAudioText: $('#btn-audio-text'),
   touchOpts: $('#touch-opts'),
   optKeys: $('#opt-keys'),
   optGlide: $('#opt-glide'),
@@ -1073,22 +1075,95 @@ el.btnSave.addEventListener('click', async () => {
   }
 });
 
-// ---------- 録画（光の動きを、動画に。最長 30 分） ----------
+// ---------- 録画（光の動きを動画に）・録音（音だけ） ----------
 let clip = null;
-const RECORD_LABEL = L('録画', 'Record');
 if (!videoType()) el.btnRecord.hidden = true; // 動画を作れないブラウザでは出さない
+if (!audioType()) el.btnAudio.hidden = true; // 録音できないブラウザでは出さない
 
-/** 録画にマイクの音も入れるか、たずねる。'light'（光だけ）・'mic'（マイクの音も）・''（やめる） */
-function askRecordMic() {
+/** 2つのボタンの部品と言葉（audioOnly が true なら「録音」、false なら「録画」） */
+const recUi = (audioOnly) =>
+  audioOnly
+    ? { btn: el.btnAudio, text: el.btnAudioText, label: L('録音', 'Audio'), noun: L('録音', 'audio recording'), file: L('音声', 'audio') }
+    : { btn: el.btnRecord, text: el.btnRecordText, label: L('録画', 'Record'), noun: L('録画', 'video recording'), file: L('動画', 'video') };
+
+/** 分 → 「30 分」「1 時間」 */
+const lenText = (min) => (min < 60 ? L(`${min} 分`, `${min} min`) : L(`${min / 60} 時間`, min === 60 ? '1 hour' : `${min / 60} hours`));
+
+/** いま選ばれている録画の決まり（スマホ・タブレットでは、いつも 30 分・標準） */
+const currentPlan = () => recordPlan({ desktop: !isTouchDevice(), minutes: prefs.get('recMinutes'), quality: prefs.get('recQuality') });
+
+// 録画の窓の中の「長さ」と「画質」（パソコンなどでだけ出す）。選ぶと、大きさの見積もりをすぐ書きかえる
+const recOpts = $('#rec-opts');
+const recEstimate = h('p', { class: 'tn-help', id: 'rec-estimate', 'aria-live': 'polite' });
+function buildRecOpts() {
+  const group = (name, legend, entries) =>
+    h(
+      'fieldset',
+      { class: `kh-parts lk-group rec-${name}` },
+      h('legend', { text: legend }),
+      h(
+        'div',
+        { class: 'lk-choices' },
+        entries.map(([value, label]) => h('label', { class: 'kh-chip lk-chip' }, h('input', { type: 'radio', name: `rec-${name}`, value }), h('span', { text: label }))),
+      ),
+    );
+  const len = group('minutes', L('長さ（ここで自動で止まります）', 'Length (stops automatically here)'), LENGTHS.map((m) => [String(m), lenText(m)]));
+  const q = group(
+    'quality',
+    L('画質', 'Quality'),
+    Object.entries(QUALITIES).map(([k, v]) => [k, L(`${v.ja}（${v.bps / 1e6} Mbps）`, `${v.en} (${v.bps / 1e6} Mbps)`)]),
+  );
+  len.addEventListener('change', (e) => {
+    prefs.set('recMinutes', Number(e.target.value));
+    showRecOpts();
+  });
+  q.addEventListener('change', (e) => {
+    prefs.set('recQuality', e.target.value);
+    showRecOpts();
+  });
+  recOpts.replaceChildren(len, q, recEstimate);
+}
+function showRecOpts() {
+  const plan = currentPlan();
+  for (const r of $$('input[name="rec-minutes"]', recOpts)) r.checked = r.value === String(plan.minutes);
+  for (const r of $$('input[name="rec-quality"]', recOpts)) r.checked = r.value === plan.quality;
+  const est = estimate(plan);
+  recEstimate.textContent = est.capped
+    ? L(
+        `この画質では、約 ${Math.floor(est.seconds / 60)} 分で大きさの上限（${sizeText(plan.maxBytes)}）に届き、そこで自動で止まります。長く録るときは、画質を下げてください。`,
+        `At this quality the video reaches the size limit (${sizeText(plan.maxBytes)}) after about ${Math.floor(est.seconds / 60)} min and stops there. For a longer video, choose a lower quality.`,
+      )
+    : L(
+        `最後まで録ると、動画は約 ${sizeText(est.bytes)} になります。途中で止めれば、その分小さくなります。画質を上げると、光の細かい動きがきれいに残り、ファイルは大きくなります。`,
+        `A full-length video is about ${sizeText(est.bytes)}; stopping earlier makes it smaller. Higher quality keeps the fine motion of the light and makes a bigger file.`,
+      );
+}
+buildRecOpts();
+
+/**
+ * 録画の前の窓。パソコンなどでは長さと画質を選び、マイクで聴いているときはマイクの音も入れるかを選ぶ。
+ * 答えは 'light'（光だけ・またはそのまま始める）・'mic'（マイクの音も）・''（やめる）
+ */
+function askRecord(mic, desktop) {
   const dlg = $('#dlg-rec');
+  $('#dlg-rec-h').textContent = desktop ? L('録画の設定', 'Recording settings') : L('マイクの音も録画しますか', 'Record the microphone too?');
+  const made = L('動画はこの端末の中で作り、どこへも送りません。', 'The video is made on this device and is not sent anywhere.');
+  const micLead = L('マイクの音を入れると、歌や演奏の記録として、音つきの動画になります。', 'With the microphone, you get a video with sound, a record of your singing or playing.');
+  $('#rec-lead').textContent = [desktop ? L('長さと画質を選べます（この端末に覚えておきます）。', 'Choose the length and quality (remembered on this device).') : '', mic ? micLead : '', made].filter(Boolean).join(LANG === 'ja' ? '' : ' ');
+  recOpts.hidden = !desktop;
+  if (desktop) showRecOpts();
+  $('#rec-start').hidden = mic;
+  $('#rec-with-mic').hidden = !mic;
+  $('#rec-light-only').hidden = !mic;
   return new Promise((resolve) => {
     dlg.addEventListener('close', () => resolve(dlg.returnValue || ''), { once: true });
     openDialog(dlg);
   });
 }
 
-// 録画中は、画面が消えないようにする（画面が消えると、絵を描く係が止まって、動画も止まった絵になるため）。
-// 「観ているあいだは画面を消さない」の設定とは別に、録画のあいだだけ必ず頼む。使えない端末では何もしない
+// 録画・録音中は、画面が消えないようにする（画面が消えると、絵を描く係が止まって、動画も止まった絵になるため。
+// スマホでは、画面が消えるとページごと止められて、録音も切れる）。
+// 「観ているあいだは画面を消さない」の設定とは別に、録っているあいだだけ必ず頼む。使えない端末では何もしない
 let recWake = null;
 async function holdRecWake() {
   if (recWake || !('wakeLock' in navigator)) return;
@@ -1110,41 +1185,57 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && clip && clip.recording) holdRecWake();
 });
 
-// 録画の始まりから、保存が終わるまで true。そのあいだは、次の録画を始めさせない
-// （保存を待っている間に次の録画を始めると、前のマイクの接続が残ったり、画面の表示が前の録画に書きかえられたりするため）
-let recBusy = false;
-el.btnRecord.addEventListener('click', async () => {
-  if (clip && clip.recording) {
-    clip.stop();
-    return;
-  }
-  if (recBusy) {
-    toast(L('動画を保存しています。終わってからもう一度押してください', 'Saving the video. Please try again when it is done'));
-    return;
-  }
-  recBusy = true;
-  try {
-    await recordOnce();
-  } finally {
-    recBusy = false;
-  }
+// 録音の途中でマイクを始めたら、そのマイクの音も録音に入れる（録音は「いま聞こえている音を残す」ためのものなので）
+engine.addEventListener('start', (ev) => {
+  if (ev.detail.kind !== 'mic' || !clip || !clip.audioOnly || !clip.recording) return;
+  if (engine.recordMic(true)) toast(L('マイクの音も録音に入れています', 'The microphone is now in the recording'));
 });
 
-async function recordOnce() {
+// 録画・録音の始まりから、保存が終わるまで true。そのあいだは、次を始めさせない
+// （保存を待っている間に次を始めると、前のマイクの接続が残ったり、画面の表示が前のものに書きかえられたりするため）
+let recBusy = false;
+for (const audioOnly of [false, true]) {
+  recUi(audioOnly).btn.addEventListener('click', async () => {
+    if (clip && clip.recording) {
+      if (clip.audioOnly === audioOnly) clip.stop();
+      else toast(audioOnly ? L('録画中です。先に録画を止めてください', 'A video is being recorded. Stop it first') : L('録音中です。先に録音を止めてください', 'Audio is being recorded. Stop it first'));
+      return;
+    }
+    if (recBusy) {
+      toast(L('保存しています。終わってからもう一度押してください', 'Saving. Please try again when it is done'));
+      return;
+    }
+    recBusy = true;
+    try {
+      await recordOnce(audioOnly);
+    } finally {
+      recBusy = false;
+    }
+  });
+}
+
+async function recordOnce(audioOnly) {
+  const ui = recUi(audioOnly);
   const when = stamp();
-  try {
-    await document.fonts?.ready;
-  } catch {
-    /* 書体を待てなくても録れる */
+  if (!audioOnly) {
+    try {
+      await document.fonts?.ready;
+    } catch {
+      /* 書体を待てなくても録れる */
+    }
   }
-  // マイクで聴いているときは、マイクの音も動画に入れるかを、その都度たずねる（入れないのがはじめの選択）
-  let withMic = false;
-  if (engine.kind === 'mic') {
-    const answer = await askRecordMic();
+  // 録画：パソコンなどでは長さと画質を選ぶ。マイクで聴いているときは、マイクの音も動画に入れるかを、その都度たずねる（入れないのがはじめの選択）
+  // 録音：音を残すためのものなので、たずねずに、マイクで聴いていればマイクの音を入れる
+  const desktop = !isTouchDevice();
+  let withMic = audioOnly && engine.kind === 'mic';
+  if (!audioOnly && (engine.kind === 'mic' || desktop)) {
+    const answer = await askRecord(engine.kind === 'mic', desktop);
     if (!answer) return; // やめた
-    withMic = answer === 'mic';
+    withMic = answer === 'mic' && engine.kind === 'mic';
   }
-  // スピーカーに出している音（カノン・指で鳴らす・ファイル）は、いつも動画に入れる
+  const plan = currentPlan();
+  const maxMin = audioOnly ? AUDIO_MAX_SECONDS / 60 : plan.minutes;
+  // スピーカーに出している音（カノン・指で鳴らす・ファイル）は、いつも入れる
   let audio = null;
   try {
     await engine.ensure();
@@ -1153,11 +1244,17 @@ async function recordOnce() {
     audio = null;
   }
   const micOn = withMic && engine.recordMic(true);
+  const dropMic = () => {
+    // 録音では、途中でマイクを始めたときにもつないでいるので、いつも切る（つないでいなければ何も起きない）
+    if (micOn || audioOnly) engine.recordMic(false);
+  };
   clip = new ClipRecorder({
     paint: (target) => stage.frameInto(target, footerText(when)),
     audio,
+    audioOnly,
+    ...(audioOnly ? { maxSeconds: AUDIO_MAX_SECONDS, maxBytes: plan.maxBytes } : plan),
     onTick: (sec) => {
-      el.btnRecordText.textContent = L(`止める ${recClock(sec)}`, `Stop ${recClock(sec)}`);
+      ui.text.textContent = L(`止める ${recClock(sec)}`, `Stop ${recClock(sec)}`);
     },
   });
   let done;
@@ -1165,44 +1262,49 @@ async function recordOnce() {
     done = clip.start();
   } catch {
     clip = null;
-    if (micOn) engine.recordMic(false);
-    toast(L('このブラウザでは録画できません', 'This browser cannot record video'));
+    dropMic();
+    toast(audioOnly ? L('このブラウザでは録音できません', 'This browser cannot record audio') : L('このブラウザでは録画できません', 'This browser cannot record video'));
     return;
   }
   holdRecWake();
-  el.btnRecord.setAttribute('aria-pressed', 'true');
-  el.btnRecordText.textContent = L('止める 0:00', 'Stop 0:00');
+  ui.btn.setAttribute('aria-pressed', 'true');
+  ui.text.textContent = L('止める 0:00', 'Stop 0:00');
+  const upTo = L(`最長 ${lenText(maxMin)}`, `up to ${lenText(maxMin)}`);
   toast(
-    engine.kind !== 'mic'
-      ? L('録画中（最長 30 分）', 'Recording (up to 30 min)')
-      : micOn
-        ? L('録画中（最長 30 分。マイクの音も入れています）', 'Recording (up to 30 min, with the microphone)')
-        : L('録画中（最長 30 分。光の動きだけ。マイクの音は入れません）', 'Recording (up to 30 min, picture only; the microphone is not recorded)'),
+    audioOnly
+      ? micOn
+        ? L(`録音中（${upTo}。マイクの音を入れています）`, `Recording audio (${upTo}, with the microphone)`)
+        : L(`録音中（${upTo}）`, `Recording audio (${upTo})`)
+      : engine.kind !== 'mic'
+        ? L(`録画中（${upTo}）`, `Recording (${upTo})`)
+        : micOn
+          ? L(`録画中（${upTo}。マイクの音も入れています）`, `Recording (${upTo}, with the microphone)`)
+          : L(`録画中（${upTo}。光の動きだけ。マイクの音は入れません）`, `Recording (${upTo}, picture only; the microphone is not recorded)`),
   );
   try {
     let blob;
     try {
       blob = await done;
     } finally {
-      // 録り終えたら、すぐマイクの接続を切る（保存や共有の窓を開いている間も、マイクを録画の流れにつなげたままにしない）
-      if (micOn) engine.recordMic(false);
+      // 録り終えたら、すぐマイクの接続を切る（保存や共有の窓を開いている間も、マイクを録画・録音の流れにつなげたままにしない）
+      dropMic();
       dropRecWake();
     }
-    el.btnRecord.setAttribute('aria-pressed', 'false');
-    el.btnRecordText.textContent = L('保存中…', 'Saving…');
+    ui.btn.setAttribute('aria-pressed', 'false');
+    ui.text.textContent = L('保存中…', 'Saving…');
     // 上限で自動で止まったときは、そのことを知らせる（ここまでの分は、そのまま保存する）
-    if (clip.stoppedBy === 'time') toast(L('30 分になったので、録画を止めました', 'Recording stopped at 30 minutes'));
-    else if (clip.stoppedBy === 'size') toast(L('動画が大きくなったので、録画を止めました', 'Recording stopped: the video reached the size limit'));
-    const ext = videoExt(clip.type);
-    const r = await shareOrSave(blob, `kouhai-${when.file}.${ext}`, blob.type || `video/${ext}`);
+    if (clip.stoppedBy === 'time') toast(L(`${lenText(maxMin)}になったので、${ui.noun}を止めました`, `The ${ui.noun} stopped at ${lenText(maxMin)}`));
+    else if (clip.stoppedBy === 'size') toast(L(`ファイルが大きくなったので、${ui.noun}を止めました`, `The ${ui.noun} stopped: the file reached the size limit`));
+    const ext = audioOnly ? audioExt(clip.type) : videoExt(clip.type);
+    const r = await shareOrSave(blob, `kouhai-${when.file}.${ext}`, blob.type || `${audioOnly ? 'audio' : 'video'}/${ext}`);
     if (r !== 'shared' && r !== 'cancelled') {
-      toast(r === 'saved' ? L('動画を保存しました', 'Saved the video') : r === 'declined' ? L('保存をやめました', 'Not saved') : L('保存できませんでした', 'Could not save'));
+      toast(r === 'saved' ? L(`${ui.file}を保存しました`, `Saved the ${ui.file}`) : r === 'declined' ? L('保存をやめました', 'Not saved') : L('保存できませんでした', 'Could not save'));
     }
   } catch {
-    toast(L('動画を作れませんでした', 'Could not make the video'));
+    toast(L(`${ui.file}を作れませんでした`, `Could not make the ${ui.file}`));
   } finally {
-    el.btnRecord.setAttribute('aria-pressed', 'false');
-    el.btnRecordText.textContent = RECORD_LABEL;
+    ui.btn.setAttribute('aria-pressed', 'false');
+    ui.text.textContent = ui.label;
     clip = null;
   }
 }
