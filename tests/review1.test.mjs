@@ -14,7 +14,7 @@ import {
   KOUHAI_OCTAVES,
 } from '../js/kouhai.js';
 import { analyserLikeDb } from '../js/dsp.js';
-import { videoType, videoExt, clock, VIDEO_TYPES, MAX_SECONDS } from '../js/recorder.js';
+import { videoType, videoExt, clock, limitReached, VIDEO_TYPES, MAX_SECONDS, MAX_BYTES, VIDEO_BPS } from '../js/recorder.js';
 
 const SR = 48000;
 
@@ -82,6 +82,16 @@ test('録画：作れる形式を選ぶ（iPhone の MP4 を先に）。作れ�
   assert.equal(videoExt('video/webm;codecs=vp9,opus'), 'webm');
   assert.equal(clock(0), '0:00');
   assert.equal(clock(5.9), '0:05');
-  assert.equal(clock(MAX_SECONDS), '0:30');
+  assert.equal(clock(MAX_SECONDS), '30:00');
   assert.equal(clock(75), '1:15');
+});
+
+test('録画：30 分まで録れる。時間か大きさの上限で自動で止まる', () => {
+  assert.equal(MAX_SECONDS, 30 * 60);
+  assert.equal(limitReached(0, 0), '');
+  assert.equal(limitReached(MAX_SECONDS - 0.1, MAX_BYTES - 1), '', '上限の手前では止めない');
+  assert.equal(limitReached(MAX_SECONDS, 0), 'time');
+  assert.equal(limitReached(60, MAX_BYTES), 'size');
+  // 映像（VIDEO_BPS）と音（多めに見て 192 kbps）を 30 分録っても、大きさの上限におさまる
+  assert.ok(((VIDEO_BPS + 192_000) * MAX_SECONDS) / 8 < MAX_BYTES, '30 分の前に、大きさの上限で止まってしまう');
 });

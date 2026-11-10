@@ -1,5 +1,5 @@
 /**
- * recorder.js — 光背の動きを、短い動画にする（「録画」）
+ * recorder.js — 光背の動きを、動画にする（「録画」。最長 30 分）
  *
  * しくみ：
  *   1. 録画用の板（canvas）に、1コマごとに「光背＋音名＋下の帯」を描く（「残す」の絵と同じ描き方）
@@ -12,7 +12,22 @@
 /** 試す順の形式。先に書いたものほど、共有したときに開ける端末が多い */
 export const VIDEO_TYPES = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
 
-export const MAX_SECONDS = 30; // 長すぎる動画は送りにくいので、30 秒で自動で止める
+/**
+ * 録画を自動で止める上限。動画は、録り終えるまで端末のメモリ（作業用の記憶）にためるので、上限がないとスマホが止まってしまう。
+ *   時間の上限：30 分
+ *   大きさの上限：600 MB（時間より先にここへ届いたら、そこで止める）
+ */
+export const MAX_SECONDS = 30 * 60;
+export const MAX_BYTES = 600 * 1024 * 1024;
+
+/**
+ * 映像の細かさ（1秒あたりのビット数）。大きさ ＝ ビット数 × 秒 ÷ 8 なので、
+ * 2.5 Mbps × 1800 秒 ÷ 8 ≒ 560 MB。30 分録っても、上の大きさの上限におさまる。
+ */
+export const VIDEO_BPS = 2_500_000;
+
+/** 止めるべきか：'time'（時間の上限）・'size'（大きさの上限）・''（まだ録れる） */
+export const limitReached = (sec, bytes) => (sec >= MAX_SECONDS ? 'time' : bytes >= MAX_BYTES ? 'size' : '');
 
 /** このブラウザで作れる動画の形式（作れなければ空文字） */
 export function videoType(env = globalThis) {
@@ -26,7 +41,7 @@ export function videoType(env = globalThis) {
 /** 動画の形式 → ファイルの拡張子 */
 export const videoExt = (type) => (/mp4/.test(type) ? 'mp4' : 'webm');
 
-/** 経過秒 → 「0:05」 */
+/** 経過秒 → 「0:05」「12:34」（分は 60 をこえても分のまま数える） */
 export const clock = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
 
 export class ClipRecorder {
@@ -44,6 +59,8 @@ export class ClipRecorder {
     this.canvas = document.createElement('canvas');
     this.recorder = null;
     this.chunks = [];
+    this.bytes = 0; // ここまでにたまった動画の大きさ
+    this.stoppedBy = ''; // 自動で止まったときの理由（'time'・'size'）。自分で止めたときは空
     this.raf = 0;
     this.startedAt = 0;
     this.lastTick = -1;
@@ -54,16 +71,23 @@ export class ClipRecorder {
     return !!this.recorder && this.recorder.state === 'recording';
   }
 
-  /** 録画を始める。止まったら（stop() か 30 秒）、動画の Blob で終わる Promise を返す */
+  /** 録画を始める。止まったら（stop() か、時間・大きさの上限）、動画の Blob で終わる Promise を返す */
   start() {
     if (!this.type) throw new Error('unsupported');
     this.paint(this.canvas); // 先に1コマ描いて、板の大きさを決めておく
     const stream = this.canvas.captureStream(30);
     if (this.audio) stream.addTrack(this.audio);
-    this.recorder = new MediaRecorder(stream, { mimeType: this.type, videoBitsPerSecond: 4_000_000 });
+    this.recorder = new MediaRecorder(stream, { mimeType: this.type, videoBitsPerSecond: VIDEO_BPS });
     this.chunks = [];
+    this.bytes = 0;
+    this.stoppedBy = '';
     this.recorder.ondataavailable = (e) => {
-      if (e.data && e.data.size) this.chunks.push(e.data);
+      if (e.data && e.data.size) {
+        this.chunks.push(e.data);
+        this.bytes += e.data.size;
+      }
+      // 画面が裏に回ると、下の「1コマごとの係」は止まる。ここは 0.5 秒ごとに呼ばれ続けるので、上限はここでも見る
+      this.checkLimit((performance.now() - this.startedAt) / 1000);
     };
     this.done = new Promise((resolve, reject) => {
       this.recorder.onstop = () => {
@@ -85,10 +109,18 @@ export class ClipRecorder {
         this.lastTick = tick;
         this.onTick(sec);
       }
-      if (sec >= MAX_SECONDS) this.stop();
+      this.checkLimit(sec);
     };
     this.raf = requestAnimationFrame(frame);
     return this.done;
+  }
+
+  /** 上限に届いていたら、理由を残して止める */
+  checkLimit(sec) {
+    const why = limitReached(sec, this.bytes);
+    if (!why || !this.recording) return;
+    this.stoppedBy = why;
+    this.stop();
   }
 
   stop() {
