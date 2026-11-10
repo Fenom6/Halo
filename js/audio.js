@@ -130,6 +130,8 @@ export class AudioEngine extends EventTarget {
     this.analyser = null;
     this.fastAnalyser = null;
     this.recordDest = null;
+    this.recordMicWanted = false; // 録画・録音にマイクの音を入れる約束が生きているか（マイクを始め直したときに、つなぎ直すため）
+    this.ticket = 0; // 「始める」の整理券。止める・次を始めるたびに進む（古い「始める」を無効にするため）
     this.output = null;
     this.kind = null; // 'mic' | 'file' | 'sample' | null
     this.sourceName = '';
@@ -246,8 +248,23 @@ export class AudioEngine extends EventTarget {
     if (this.analyser) this.analyser.fftSize = n;
   }
 
-  /** マイクで観る */
-  async startMic() {
+  /**
+   * 「始める」の整理券を取る。マイクの許可やファイルの読み込みは時間がかかるので、
+   * その間に「止める」か別の「始める」が来たら、整理券の番号が進み、古い方は始めずに終わる。
+   * 準備の前（ファイルを読む前など）に取っておき、始める係（startMic・playBuffer・startTouch）へ渡す。
+   */
+  claim() {
+    this.ticket += 1;
+    return this.ticket;
+  }
+
+  /** この整理券は、まだ有効か（あとから「止める」も「始める」も来ていないか） */
+  isCurrent(ticket) {
+    return ticket === this.ticket;
+  }
+
+  /** マイクで観る。準備のあいだに止められたら、始めずに false を返す */
+  async startMic({ ticket = this.claim() } = {}) {
     if (!window.isSecureContext) {
       throw new HaloAudioError('insecure', L('マイクは https のページでしか使えません。', 'The microphone only works on https pages.'));
     }
@@ -270,21 +287,38 @@ export class AudioEngine extends EventTarget {
     } catch (e) {
       throw micError(e);
     }
-    await ctxReady;
+    try {
+      await ctxReady;
+    } catch (e) {
+      for (const t of stream.getTracks()) t.stop();
+      throw e;
+    }
+    if (!this.isCurrent(ticket)) {
+      // 許可を待っている間に「止める」か別の音が始まった：もらったマイクはすぐ返して、何も始めない
+      for (const t of stream.getTracks()) t.stop();
+      return false;
+    }
     this.stopSources();
     this.stream = stream;
     this.mediaSource = this.ctx.createMediaStreamSource(stream);
     this.mediaSource.connect(this.input);
+    // 録画・録音にマイクの音を入れている途中で、マイクを始め直したとき：新しいマイクも録画・録音の流れへつなぐ
+    // （つながないと、録っている表示のまま、そこから先が無音になる）
+    if (this.recordMicWanted) this.connectMicToRecord();
     this.kind = 'mic';
     this.sourceName = L('マイク', 'Microphone');
     const track = stream.getAudioTracks()[0];
-    if (track) track.addEventListener('ended', () => this.stop());
+    if (track) track.addEventListener('ended', () => {
+      if (this.stream === stream) this.stop(); // 前のマイクの「終わり」で、いまの音を止めない
+    });
     this.afterStart();
+    return true;
   }
 
   /** 音のデータ（AudioBuffer）を流して観る。ファイルとサンプルで共通。 */
-  async playBuffer(buffer, { kind = 'sample', name = '', loop = false } = {}) {
+  async playBuffer(buffer, { kind = 'sample', name = '', loop = false, ticket = this.claim() } = {}) {
     await this.ensure();
+    if (!this.isCurrent(ticket)) return false; // 準備のあいだに止められた・別の音が始まった
     this.stopSources();
     const src = this.ctx.createBufferSource();
     src.buffer = buffer;
@@ -306,6 +340,7 @@ export class AudioEngine extends EventTarget {
     this.startedAt = this.ctx.currentTime;
     this.duration = buffer.duration;
     this.afterStart();
+    return true;
   }
 
   /**
@@ -313,11 +348,14 @@ export class AudioEngine extends EventTarget {
    * 鳴らす音は tone(…, { observe: true }) で作る（スピーカーと観察窓の両方へ流れるので、光背に映る）。
    */
   async startTouch(name = L('指で鳴らす', 'Touch')) {
+    const ticket = this.claim();
     await this.ensure();
+    if (!this.isCurrent(ticket)) return false;
     this.stopSources();
     this.kind = 'touch';
     this.sourceName = name;
     this.afterStart();
+    return true;
   }
 
   /** 再生中なら、何秒目か */
@@ -358,13 +396,27 @@ export class AudioEngine extends EventTarget {
 
   /**
    * 録画にマイクの音も入れる（on）／やめる（off）。利用者が録画のときに選んだときだけ呼ぶ。
-   * マイクの音は、動画を作るためだけに録画用の流れへつなぐ（スピーカーには出さない・どこへも送らない）
+   * マイクの音は、動画を作るためだけに録画用の流れへつなぐ（スピーカーには出さない・どこへも送らない）。
+   * on のあいだは約束を覚えておき、マイクを始め直したとき・あとからマイクを始めたときも、新しいマイクをつなぐ。
+   * 返り値は、いまマイクがつながったか（off のときは、切れたか）
    */
   recordMic(on) {
+    this.recordMicWanted = !!on;
+    if (on) return this.connectMicToRecord();
     if (!this.recordDest || !this.mediaSource) return false;
     try {
-      if (on) this.mediaSource.connect(this.recordDest);
-      else this.mediaSource.disconnect(this.recordDest);
+      this.mediaSource.disconnect(this.recordDest);
+      return true;
+    } catch {
+      return false; // つないでいなかった
+    }
+  }
+
+  /** いまのマイクを、録画・録音の流れへつなぐ。つなげたら true */
+  connectMicToRecord() {
+    if (!this.recordDest || !this.mediaSource) return false;
+    try {
+      this.mediaSource.connect(this.recordDest);
       return true;
     } catch {
       return false;
@@ -409,6 +461,7 @@ export class AudioEngine extends EventTarget {
 
   /** 止める */
   stop() {
+    this.ticket += 1; // 準備中の「始める」（マイクの許可待ち・ファイルの読み込み中）を無効にする
     const was = this.kind;
     this.stopSources();
     this.kind = null;

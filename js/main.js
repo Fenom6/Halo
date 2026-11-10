@@ -542,9 +542,11 @@ el.fileInput.addEventListener('change', () => {
 /** 音のファイルを読んで鳴らす（ファイルのボタンからも、画面へドラッグしても） */
 async function playFile(file) {
   showError('');
+  // 読み込みには時間がかかる。その間に「止める」や別の音が来たら、読み終えても鳴らさない（整理券で見分ける）
+  const ticket = engine.claim();
   try {
     const buf = await engine.decodeFile(file);
-    await engine.playBuffer(buf, { kind: 'file', name: file.name });
+    await engine.playBuffer(buf, { kind: 'file', name: file.name, ticket });
   } catch (e) {
     showError(e.message || String(e));
   }
@@ -604,6 +606,7 @@ $('#canon-play').addEventListener('click', () => {
 });
 
 async function playCanon(parts) {
+  const ticket = engine.claim(); // 準備のあいだに「止める」や別の音が来たら、鳴らさない
   try {
     await engine.ensure();
     const sr = engine.sampleRate;
@@ -614,9 +617,12 @@ async function playCanon(parts) {
       sampleCache.set(key, samples);
     }
     const buf = await engine.bufferFrom(samples, sr);
-    pendingScore = canonScore(parts);
+    if (!engine.isCurrent(ticket)) return;
+    const score = canonScore(parts);
+    pendingScore = score;
     lookHint = isPure(currentLook()) ? CANON_LOOK_PURE : CANON_LOOK;
-    await engine.playBuffer(buf, { kind: 'sample', name: L('カノン', 'Canon') });
+    const started = await engine.playBuffer(buf, { kind: 'sample', name: L('カノン', 'Canon'), ticket });
+    if (!started && pendingScore === score) pendingScore = null; // 始まらなかったカノンの楽譜を、次の音に渡さない
   } catch (e) {
     showError(e.message || String(e));
   }
@@ -1185,10 +1191,13 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && clip && clip.recording) holdRecWake();
 });
 
-// 録音の途中でマイクを始めたら、そのマイクの音も録音に入れる（録音は「いま聞こえている音を残す」ためのものなので）
+// 録音の途中でマイクを始めたら、そのマイクの音も録音に入る（録音は「いま聞こえている音を残す」ためのものなので）。
+// つなぐのは音の係（engine.recordMic(true) の約束が生きている間、新しいマイクを自分でつなぐ）。ここでは知らせるだけ
+let recMicAtStart = false; // 録り始めたとき、マイクがつながっていたか
 engine.addEventListener('start', (ev) => {
-  if (ev.detail.kind !== 'mic' || !clip || !clip.audioOnly || !clip.recording) return;
-  if (engine.recordMic(true)) toast(L('マイクの音も録音に入れています', 'The microphone is now in the recording'));
+  if (ev.detail.kind !== 'mic' || !clip || !clip.audioOnly || !clip.recording || recMicAtStart) return;
+  recMicAtStart = true; // 知らせるのは1回だけ
+  toast(L('マイクの音も録音に入れています', 'The microphone is now in the recording'));
 });
 
 // 録画・録音の始まりから、保存が終わるまで true。そのあいだは、次を始めさせない
@@ -1243,10 +1252,13 @@ async function recordOnce(audioOnly) {
   } catch {
     audio = null;
   }
-  const micOn = withMic && engine.recordMic(true);
+  // マイクの音を入れる約束をする（録音はいつも。録画は「マイクの音も入れる」を選んだときだけ）。
+  // 約束のあいだは、マイクを止めて始め直しても、新しいマイクの音が入り続ける
+  const wantMic = withMic || audioOnly;
+  const micOn = wantMic && engine.recordMic(true);
+  recMicAtStart = micOn;
   const dropMic = () => {
-    // 録音では、途中でマイクを始めたときにもつないでいるので、いつも切る（つないでいなければ何も起きない）
-    if (micOn || audioOnly) engine.recordMic(false);
+    if (wantMic) engine.recordMic(false);
   };
   clip = new ClipRecorder({
     paint: (target) => stage.frameInto(target, footerText(when)),
