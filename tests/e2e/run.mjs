@@ -500,6 +500,86 @@ try {
     await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
   });
 
+  await check('止める：マイクの許可を待っている間に止めたら、あとからマイクが始まらない', async () => {
+    await page.click('#btn-touch'); // 「指で鳴らす」にしておく（もう一度押すと止まる）
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent !== '停止中', null, { timeout: 5000 });
+    // マイクの許可が出るまで 1 秒かかる端末のふりをする
+    await page.evaluate(() => {
+      const md = navigator.mediaDevices;
+      const real = md.getUserMedia.bind(md);
+      window.__realGum = real;
+      window.__micTracks = [];
+      md.getUserMedia = (c) => new Promise((resolve, reject) => setTimeout(() => real(c).then((st) => { window.__micTracks.push(...st.getTracks()); resolve(st); }, reject), 1000));
+    });
+    await page.click('#btn-mic');
+    await page.waitForTimeout(200);
+    await page.click('#btn-touch'); // 許可を待っている間に、止める
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
+    await page.waitForTimeout(2000); // 許可が出たあとまで待つ
+    expect((await text('#head-status-text')) === '停止中', `止めたのに「${await text('#head-status-text')}」になった`);
+    expect(await page.evaluate(() => window.__micTracks.length > 0 && window.__micTracks.every((t) => t.readyState === 'ended')), 'もらったマイクを返していない');
+    await page.evaluate(() => { navigator.mediaDevices.getUserMedia = window.__realGum; delete window.__realGum; delete window.__micTracks; });
+  });
+
+  await check('止める：ファイルを読んでいる間に止めたら、あとから再生が始まらない', async () => {
+    await page.click('#btn-touch');
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent !== '停止中', null, { timeout: 5000 });
+    // ファイルの読み込み（音への変換）に 1 秒かかる端末のふりをする
+    await page.evaluate(() => {
+      const P = (window.AudioContext || window.webkitAudioContext).prototype;
+      const real = P.decodeAudioData;
+      window.__realDecode = real;
+      P.decodeAudioData = function (...a) {
+        return new Promise((resolve, reject) => setTimeout(() => real.apply(this, a).then(resolve, reject), 1000));
+      };
+    });
+    await page.setInputFiles('#file-input', wavPath);
+    await page.waitForTimeout(200);
+    await page.click('#btn-touch'); // 読んでいる間に、止める
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
+    await page.waitForTimeout(2000);
+    expect((await text('#head-status-text')) === '停止中', `止めたのに「${await text('#head-status-text')}」になった`);
+    await page.evaluate(() => { (window.AudioContext || window.webkitAudioContext).prototype.decodeAudioData = window.__realDecode; delete window.__realDecode; });
+    // そのあとは、ふつうにファイルを鳴らせる
+    await page.setInputFiles('#file-input', wavPath);
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'ラ', null, { timeout: 10000 });
+    await page.click('#btn-stop');
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
+  });
+
+  await check('録画（マイクを始め直す）：録画中にマイクを止めて始め直しても、そのあとの音が動画に入る', async () => {
+    await page.click('#btn-mic');
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'ラ', null, { timeout: 10000 });
+    await page.click('#btn-record');
+    await page.waitForSelector('#dlg-rec[open]');
+    await page.click('#rec-with-mic');
+    await page.waitForFunction(() => document.querySelector('#btn-record').getAttribute('aria-pressed') === 'true', null, { timeout: 5000 });
+    await page.waitForTimeout(1000);
+    await page.click('#btn-mic'); // マイクを止める
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
+    await page.waitForTimeout(500);
+    await page.click('#btn-mic'); // 始め直す
+    await page.waitForFunction(() => document.querySelector('#kouhai-note').textContent === 'ラ', null, { timeout: 10000 });
+    await page.waitForTimeout(3000);
+    const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 10000 }), page.click('#btn-record')]);
+    const b64 = (await readFile(await dl.path())).toString('base64');
+    // 動画の音を数の並びに戻し、終わりの 1.5 秒の強さ（RMS：2乗の平均の平方根）を測る。無音なら 0
+    const tail = await page.evaluate(async (data) => {
+      const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+      const ctx = new AudioContext();
+      const buf = await ctx.decodeAudioData(bytes.buffer);
+      await ctx.close();
+      const x = buf.getChannelData(0);
+      const n = Math.min(x.length, Math.round(buf.sampleRate * 1.5));
+      let sum = 0;
+      for (let i = x.length - n; i < x.length; i++) sum += x[i] * x[i];
+      return { rms: Math.sqrt(sum / n), seconds: buf.duration };
+    }, b64);
+    expect(tail.rms > 0.02, `始め直したあとの音が入っていない（強さ ${tail.rms.toFixed(4)}・長さ ${tail.seconds.toFixed(1)} 秒）`);
+    await page.click('#btn-mic');
+    await page.waitForFunction(() => document.querySelector('#head-status-text').textContent === '停止中', null, { timeout: 5000 });
+  });
+
   await check('残す（パソコン）：共有かダウンロードかを選べる。ダウンロードを選ぶとファイルになり、✕ では何も起きない', async () => {
     await page.evaluate(() => {
       window.__shared = 0;
